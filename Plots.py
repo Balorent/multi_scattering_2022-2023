@@ -56,16 +56,10 @@ class PlotXY:
         self.scatterer_list = []
 
         # Create the circle representing the contour
-        self.contour = patches.Circle((0, 0), radius=view.rc_value.get(), color='black', linewidth=0.3, fill=None)
-        self.ax.add_patch(self.contour)
+        self.contour = None
 
     def first_plot(self):
-        # Display the scatterers
         self.coordinates = maths.coordinates
-        for i in range(maths.N):
-            circle = patches.Circle((self.coordinates[i][0], self.coordinates[i][1]), radius=0.1, color='black')
-            self.scatterer_list.append(circle)
-            self.ax.add_patch(circle)
 
         # Compute a
         maths.compute_a()
@@ -99,7 +93,15 @@ class PlotXY:
         # Display the color legend
         self.root.colorbar(self.pcm, ax=self.ax, fraction=0.046, pad=0.04)
 
+        # Display the scatterers
+        for i in range(maths.N):
+            circle = patches.Circle((self.coordinates[i][0], self.coordinates[i][1]), radius=0.1, color='black')
+            self.scatterer_list.append(circle)
+            self.ax.add_patch(circle)
+
         # Add the circular contour
+        self.contour = patches.Circle((0, 0), radius=view.rc_value.get(), color='black', linewidth=0.3, fill=None)
+        self.ax.add_patch(self.contour)
 
     def update_plot(self, update_scatterers, update_res_bound, scattering_amp_bool, new_x=0, new_y=0):
         # Update scatterers position if necessary
