@@ -194,6 +194,13 @@ def update_k_from_tb(event):
     view.xy_plot.update_plot(-1, 0, scattering_amp_bool)
     view.theta_plot.update_plot()
     view.plot_canvas.draw()
+    update_textbox(view.det_m_textbox, round(np.abs(maths.det_m(maths.k, float(view.im_k_textbox.get()))), 6))
+
+
+def update_im_k_from_tb(event):
+    new_im_k = float(view.im_k_textbox.get())
+    view.im_k_value.set(new_im_k)
+    update_textbox(view.det_m_textbox, round(np.abs(maths.det_m(maths.k, new_im_k)), 6))
 
 
 def update_rc_from_tb(event):
@@ -335,6 +342,13 @@ def update_k_from_slider(value):
     view.xy_plot.update_plot(-1, 0, scattering_amp_bool)
     view.theta_plot.update_plot()
     view.plot_canvas.draw()
+    update_textbox(view.det_m_textbox, round(np.abs(maths.det_m(maths.k, float(view.im_k_textbox.get()))), 6))
+
+
+def update_im_k_from_slider(value):
+    new_im_k = float(value)
+    update_textbox(view.im_k_textbox, new_im_k)
+    update_textbox(view.det_m_textbox, round(np.abs(maths.det_m(maths.k, new_im_k)), 6))
 
 
 def update_step_arg_from_slider(value):
