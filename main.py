@@ -1,7 +1,7 @@
 #                                 MAIN.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    08 october 2022
+# Last edition :    16 october 2022
 # Description  :    This program aims at simulating the wave function of a
 #                   spherical wave in a cloud chamber, and the effect of the
 #                   scattering of this wave by a relatively small number of
@@ -44,10 +44,7 @@
 #                       - M(k) is a matrix N*N
 #                       - phi is the N*1 vector [phi(x_1), ..., phi(n_N)]^T
 # ------------------------------------------------------------------------
-# TODO : Consider other scattering models
-
-import controller
+import view
 
 if __name__ == "__main__":
-    controller.initialise()
-
+    view.initialise()
