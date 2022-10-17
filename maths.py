@@ -1,7 +1,7 @@
 #                                 MATH.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    08 october 2022
+# Last edition :    16 october 2022
 # ------------------------------------------------------------------------
 
 
@@ -10,6 +10,7 @@ import numpy as np
 import math
 import scipy.special
 import random
+import view
 
 
 # Start ------------------------------------------------------------------
@@ -27,7 +28,6 @@ coordinates = [[0, 0] for i in range(N)]    # Coordinates of each scatterer [[x_
 
 # Incident wave parameters #
 k = 10                                      # Wave number [1/m]
-waveType = "spherical"                      # Wave type is either "spherical" or "plane"
 
 # Scattering model parameter #
 invFmax = 1j / 4                            # inverse of the scattering amplitude F(k)
@@ -78,6 +78,7 @@ def initialize_scatterers():
         coordinates[i] = [xi, yi]
 
 
+
 def compute_a():
     """
     This function computes the vector a containing the N values of the
@@ -86,7 +87,7 @@ def compute_a():
     """
     global a
     for i in range(N):
-        if waveType == "spherical":
+        if view.wave_type.get():
             vecPhi[i] = phi_sph(coordinates[i][0], coordinates[i][1], k)
         else:
             vecPhi[i] = phi_pl(coordinates[i][0], k)
