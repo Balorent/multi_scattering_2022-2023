@@ -1,0 +1,254 @@
+#                                 PLOTS.PY
+# ------------------------------------------------------------------------
+# Author       :    Baptiste Lorent
+# Last edition :    16 october 2022
+# ------------------------------------------------------------------------
+
+# Imports ----------------------------------------------------------------
+import numpy as np
+import math
+import matplotlib.colors as colors
+import matplotlib.patches as patches
+
+import view
+import maths
+import controller
+
+# Start ------------------------------------------------------------------
+if __name__ == "__main__":
+    print("main.py should be started instead")
+    exit()
+
+
+class PlotXY:
+    def __init__(self, root, x_res, x_min, x_max, y_res, y_min, y_max, root_grid):
+        # Set the attributes
+        self.root = root
+        self.x_res = x_res
+        self.x_min = x_min
+        self.x_max = x_max
+        self.y_res = y_res
+        self.y_min = y_min
+        self.y_max = y_max
+
+        # Create the axis
+        self.ax = root.add_subplot(root_grid[:, 0])
+        self.ax.set(adjustable='box', aspect='equal')
+        self.ax.set_xlim(x_min, x_max)
+        self.ax.set_ylim(y_min, y_max)
+        self.ax.set_xlabel('x [nm]')
+        self.ax.set_ylabel('y [nm]')
+
+        # Create the mesh
+        self.x_mesh, self.y_mesh = np.meshgrid(np.linspace(x_min, x_max, x_res), np.linspace(y_min, y_max, y_res))
+        self.dx = abs(self.x_mesh[1][1]-self.x_mesh[0][0])
+        self.dy = abs(self.y_mesh[1][1]-self.y_mesh[0][0])
+
+        # Create the pcolormesh
+        self.pcm = None
+
+        # Create the min and max bounds for the color legend
+        self.scale_min = None
+        self.scale_max = None
+
+        # Create the circles representing the scatterers
+        self.coordinates = None
+        self.scatterer_list = []
+
+        # Create the circle representing the contour
+        self.contour = patches.Circle((0, 0), radius=view.rc_value.get(), color='black', linewidth=0.3, fill=None)
+        self.ax.add_patch(self.contour)
+
+    def first_plot(self):
+        # Display the scatterers
+        self.coordinates = maths.coordinates
+        for i in range(maths.N):
+            circle = patches.Circle((self.coordinates[i][0], self.coordinates[i][1]), radius=0.1, color='black')
+            self.scatterer_list.append(circle)
+            self.ax.add_patch(circle)
+
+        # Compute a
+        maths.compute_a()
+        k = maths.k
+        a = maths.a
+
+        # compute the square modulus of the wave function
+        if view.wave_type.get():
+            z = maths.phi_sph(self.x_mesh, self.y_mesh, k)
+        else:
+            z = maths.phi_pl(self.x_mesh, k)
+        for i in range(maths.N):
+            z += a[i] * \
+                 maths.G(k, np.sqrt((self.x_mesh - self.coordinates[i][0]) * (self.x_mesh - self.coordinates[i][0]) +
+                                    (self.y_mesh - self.coordinates[i][1]) * (self.y_mesh - self.coordinates[i][1])))
+        z = (np.abs(z)) ** 2
+        z /= (self.dx * self.dy * sum(sum(z)))  # Normalization such that the integral(|psi|²) = 1
+
+        # Define the bounds of the min and max bounds for the color legend
+        self.scale_min = z.min()
+        self.scale_max = z.max()
+        controller.update_textbox(view.scale_min_textbox, round(self.scale_min, 5))
+        controller.update_textbox(view.scale_max_textbox, round(self.scale_max, 5))
+
+        # Display the pcolormesh
+        self.pcm = self.ax.pcolormesh(self.x_mesh, self.y_mesh, z,
+                                      norm=colors.LogNorm(vmin=self.scale_min, vmax=self.scale_max),
+                                      cmap='YlOrRd',
+                                      shading='auto')
+
+        # Display the color legend
+        self.root.colorbar(self.pcm, ax=self.ax, fraction=0.046, pad=0.04)
+
+        # Add the circular contour
+
+    def update_plot(self, update_scatterers, update_res_bound, scattering_amp_bool, new_x=0, new_y=0):
+        # Update scatterers position if necessary
+        if update_scatterers >= 0:
+            self.scatterer_list[update_scatterers].center = new_x, new_y
+            maths.coordinates[update_scatterers][0], maths.coordinates[update_scatterers][1] = new_x, new_y
+            self.coordinates[update_scatterers][0], maths.coordinates[update_scatterers][1] = new_x, new_y
+
+        # Compute a
+        maths.compute_a()
+        k = maths.k
+        a = maths.a
+
+        # Update scatterers size if necessary
+        if scattering_amp_bool:
+            for i in range(maths.N):
+                self.scatterer_list[i].radius = abs(a[i]) / max(abs(a)) * (self.x_max - self.x_min) / 20
+
+        # compute the square modulus of the wave function
+        if view.wave_type.get():
+            z = maths.phi_sph(self.x_mesh, self.y_mesh, k)
+        else:
+            z = maths.phi_pl(self.x_mesh, k)
+        for i in range(maths.N):
+            z += a[i] * \
+                 maths.G(k, np.sqrt((self.x_mesh - self.coordinates[i][0]) * (self.x_mesh - self.coordinates[i][0]) +
+                                    (self.y_mesh - self.coordinates[i][1]) * (self.y_mesh - self.coordinates[i][1])))
+        z = (np.abs(z)) ** 2
+        z /= (self.dx * self.dy * sum(sum(z)))  # Normalization such that the integral(|psi|²) = 1
+
+        if not math.isnan(z[0][0]):
+            if not update_res_bound:
+                self.pcm.set_array(z)
+            else:
+                self.pcm = self.ax.pcolormesh(self.x_mesh, self.y_mesh, z,
+                                              norm=colors.LogNorm(vmin=self.scale_min, vmax=self.scale_max),
+                                              cmap='YlOrRd',
+                                              shading='auto')
+
+    def update_mesh(self, update_x_res, update_x_min, update_x_max, update_y_res, update_y_min, update_y_max):
+        self.x_mesh, self.y_mesh = np.meshgrid(np.linspace(update_x_min, update_x_max, update_x_res),
+                                               np.linspace(update_y_min, update_y_max, update_y_res))
+        self.dx = abs(self.x_mesh[1][1] - self.x_mesh[0][0])
+        self.dy = abs(self.y_mesh[1][1] - self.y_mesh[0][0])
+        for i in range(maths.N):
+            self.scatterer_list[i].radius *= (update_x_max - update_x_min) / 20
+        self.ax.set_xlim(update_x_min, update_x_max)
+        self.ax.set_ylim(update_y_min, update_y_max)
+        self.x_res = update_x_res
+        self.x_min = update_x_min
+        self.x_max = update_x_max
+        self.y_res = update_y_res
+        self.y_min = update_y_min
+        self.y_max = update_y_max
+
+
+class PlotK:
+    def __init__(self, root, re_k_res, re_k_min, re_k_max, im_k_res, im_k_min, im_k_max, root_grid):
+        # Set the attributes
+        self.root = root
+        self.re_k_res = re_k_res
+        self.re_k_min = re_k_min
+        self.re_k_max = re_k_max
+        self.im_k_res = im_k_res
+        self.im_k_min = im_k_min
+        self.im_k_max = im_k_max
+
+        # Create the axis
+        self.ax = root.add_subplot(root_grid[1, 1])
+        self.ax.set(adjustable='box')
+        self.ax.set_xlim(re_k_min, re_k_max)
+        self.ax.set_ylim(im_k_min, im_k_max)
+        self.ax.set_xlabel('Re(k) [1/nm]')
+        self.ax.set_ylabel('Im(k) [1/nm]')
+
+        # Create the mesh
+        self.re_k_mesh, self.im_k_mesh = np.meshgrid(np.linspace(re_k_min, re_k_max, re_k_res), np.linspace(im_k_min, im_k_max, im_k_res))
+
+    def first_plot(self):
+        print("plotK")
+
+
+class PlotTheta:
+    def __init__(self, root, theta_res, theta_min, theta_max, root_grid):
+        # Set the attributes
+        self.root = root
+        self.theta_res = theta_res
+        self.theta_min = theta_min
+        self.theta_max = theta_max
+
+        # Create the axis
+        self.ax = root.add_subplot(root_grid[0, 1])
+        self.ax.set(adjustable='box')
+        self.ax.set_xlim(theta_min, theta_max)
+        self.ax.set_xlabel('\u03B8 [rad]')
+        self.ax.set_ylabel('|\u03A8|²')
+
+        # Create the meshes
+        self.theta_contour = np.linspace(0, 2 * math.pi, theta_res)
+        self.x_contour = view.rc_value.get() * np.cos(self.theta_contour)
+        self.y_contour = view.rc_value.get() * np.sin(self.theta_contour)
+        self.dtheta = abs(self.theta_contour[1] - self.theta_contour[0])
+
+        # Create the plot
+        self.plt = None
+
+    def first_plot(self):
+        k = maths.k
+        a = maths.a
+        coordinates = maths.coordinates
+        if view.wave_type:
+            z = maths.phi_sph(self.x_contour, self.y_contour, k)
+        else:
+            z = maths.phi_pl(self.x_contour, k)
+        for i in range(maths.N):
+            dx = self.x_contour - coordinates[i][0]
+            dy = self.y_contour - coordinates[i][1]
+            z += a[i] * maths.G(k, np.sqrt(dx * dx + dy * dy))
+        z = (np.abs(z)) ** 2
+        z /= (self.dtheta * sum(z))
+        if not math.isnan(z[0]):
+            self.ax.set_ylim(0, z.max() + 0.01)
+            self.plt, = self.ax.plot(self.theta_contour, z, color='blue', linewidth=1)
+
+    def update_plot(self):
+        if self.plt is not None:
+            self.plt.remove()
+            self.plt = None
+        k = maths.k
+        a = maths.a
+        coordinates = maths.coordinates
+        if view.wave_type:
+            z = maths.phi_sph(self.x_contour, self.y_contour, k)
+        else:
+            z = maths.phi_pl(self.x_contour, k)
+        for i in range(maths.N):
+            dx = self.x_contour - coordinates[i][0]
+            dy = self.y_contour - coordinates[i][1]
+            z += a[i] * maths.G(k, np.sqrt(dx * dx + dy * dy))
+        z = (np.abs(z)) ** 2
+        z /= (self.dtheta * sum(z))
+        if not math.isnan(z[0]):
+            self.ax.set_ylim(0, z.max() + 0.01)
+            self.plt, = self.ax.plot(self.theta_contour, z, color='blue', linewidth=1)
+
+    def update_mesh(self, update_res):
+        if update_res:
+            self.theta_contour = np.linspace(0, 2 * math.pi, view.theta_res_value)
+        self.x_contour = float(view.rc_textbox.get()) * np.cos(self.theta_contour)
+        self.y_contour = float(view.rc_textbox.get()) * np.sin(self.theta_contour)
+        self.dtheta = abs(self.theta_contour[1] - self.theta_contour[0])
+        self.theta_res = view.theta_res_value
