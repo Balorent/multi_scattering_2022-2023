@@ -122,7 +122,7 @@ def initialize_plot_panel():
     global xy_plot, theta_plot, resonances_plot, plot_canvas
 
     plot_panel.pack(side=tk.LEFT, fill=BOTH, expand=1)
-    plot_figure = plt.Figure(figsize=(16, 8))
+    plot_figure = plt.Figure(figsize=(window.winfo_screenheight()*16/1080, window.winfo_screenheight()*8/1080))
     plot_canvas = FigureCanvasTkAgg(plot_figure, plot_panel)
     plot_canvas.get_tk_widget().pack(side=tk.LEFT)
     plot_grid = gridspec.GridSpec(2, 2, height_ratios=[1, 2], width_ratios=[3, 2])
