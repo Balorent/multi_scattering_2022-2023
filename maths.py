@@ -78,7 +78,6 @@ def initialize_scatterers():
         coordinates[i] = [xi, yi]
 
 
-
 def compute_a():
     """
     This function computes the vector a containing the N values of the
@@ -100,3 +99,20 @@ def compute_a():
                 M[i, i] = invFmax
     invM = np.linalg.inv(M)
     a = invM.dot(vecPhi)
+
+
+def det_m(re_k, im_k):
+    """
+    This function computes the determinant of the matrix M
+    for a certain k in the complex plane
+    """
+    M2 = np.zeros((N, N), dtype=complex)
+    for i in range(N):
+        for j in range(N):
+            if i != j:
+                dx = coordinates[i][0] - coordinates[j][0]
+                dy = coordinates[i][1] - coordinates[j][1]
+                M2[i, j] = -G(re_k + 1j*im_k, np.sqrt(dx**2 + dy**2))
+            else:
+                M2[i, i] = invFmax
+    return np.linalg.det(M2)
