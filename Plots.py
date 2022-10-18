@@ -140,6 +140,19 @@ class PlotXY:
                                               norm=colors.LogNorm(vmin=self.scale_min, vmax=self.scale_max),
                                               cmap='YlOrRd',
                                               shading='auto')
+        if view.scale_type.get() == 0:
+            self.pcm.set_norm(colors.LogNorm(vmin=self.scale_min, vmax=self.scale_max))
+        elif view.scale_type.get() == 1:
+            self.pcm.set_norm(
+                colors.PowerNorm(gamma=view.pow_scale_value, vmin=self.scale_min, vmax=self.scale_max))
+        elif view.scale_type.get() == 2:
+            self.pcm.set_norm(colors.BoundaryNorm(boundaries=[self.scale_min,
+                                                              float(view.step_scale_textbox.get()),
+                                                              self.scale_max], ncolors=256))
+
+        for i in range(maths.N):
+            self.scatterer_list[i].remove()
+            self.ax.add_patch(self.scatterer_list[i])
 
     def update_mesh(self, update_x_res, update_x_min, update_x_max, update_y_res, update_y_min, update_y_max):
         self.x_mesh, self.y_mesh = np.meshgrid(np.linspace(update_x_min, update_x_max, update_x_res),
@@ -182,6 +195,54 @@ class PlotK:
 
     def first_plot(self):
         print("plotK")
+
+
+class PlotDetM:
+    def __init__(self, root, im_k_res, im_k_min, im_k_max, root_grid):
+        # Set the attributes
+        self.root = root
+        self.im_k_res = im_k_res
+        self.im_k_min = im_k_min
+        self.im_k_max = im_k_max
+
+        # Create the axis
+        self.ax = root.add_subplot(root_grid[1, 1])
+        self.ax.set(adjustable='box')
+        self.ax.set_xlim(im_k_min, im_k_max)
+        self.ax.set_xlabel('Im(k) [1/nm]')
+        self.ax.set_ylabel('det(M(k))')
+
+        # Create the mesh
+        self.im_k_mesh = np.linspace(-5, 0, im_k_res)
+
+        # Create the plot
+        self.plt = None
+
+    def first_plot(self):
+        re_k = maths.k
+        det_m = []
+        for i in range(self.im_k_res):
+            det_m.append(np.abs(maths.det_m(re_k, self.im_k_mesh[i])))
+        self.ax.set_ylim(0, 2*det_m[-1])
+        self.plt, = self.ax.plot(self.im_k_mesh, det_m, color='red', linewidth=1)
+
+    def update_plot(self):
+        if self.plt is not None:
+            self.plt.remove()
+            self.plt = None
+        re_k = maths.k
+        det_m = []
+        for i in range(self.im_k_res):
+            det_m.append(np.abs(maths.det_m(re_k, self.im_k_mesh[i])))
+        self.ax.set_ylim(0, 2*det_m[-1])
+        self.plt, = self.ax.plot(self.im_k_mesh, det_m, color='red', linewidth=1)
+
+    def update_mesh(self, update_im_k_res, update_im_k_min, update_im_k_max):
+        self.im_k_mesh = np.linspace(update_im_k_min, update_im_k_max, update_im_k_res)
+        self.ax.set_xlim(update_im_k_min, update_im_k_max)
+        self.im_k_res = update_im_k_res
+        self.im_k_min = update_im_k_min
+        self.im_k_max = update_im_k_max
 
 
 class PlotTheta:
