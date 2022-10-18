@@ -95,7 +95,7 @@ y_max_value = 10
 y_min_textbox = None
 y_min_value = -10
 im_k_res_textbox = None
-im_k_res_value = 1000
+im_k_res_value = 3
 im_k_max_textbox = None
 im_k_max_value = 0
 im_k_min_textbox = None
@@ -143,9 +143,9 @@ def initialize_plot_panel():
     plot_canvas.get_tk_widget().pack(side=tk.LEFT)
     plot_grid = gridspec.GridSpec(2, 2, height_ratios=[1, 2], width_ratios=[3, 2])
 
-    xy_plot = PlotXY(plot_figure, 100, -10, 10, 100, -10, 10, plot_grid)
-    theta_plot = PlotTheta(plot_figure, 1000, 0, 2 * math.pi, plot_grid)
-    resonances_plot = PlotDetM(plot_figure, 1000, -2, 0, plot_grid)
+    xy_plot = PlotXY(plot_figure, x_res_value, x_min_value, x_max_value, y_res_value, y_min_value, y_max_value, plot_grid)
+    theta_plot = PlotTheta(plot_figure, theta_res_value, 0, 2 * math.pi, plot_grid)
+    resonances_plot = PlotDetM(plot_figure, im_k_res_value, im_k_min_value, im_k_max_value, plot_grid)
 
     plot_figure.canvas.mpl_connect('button_press_event', controller.button_press_callback)
     plot_figure.canvas.mpl_connect('button_release_event', controller.button_release_callback)
