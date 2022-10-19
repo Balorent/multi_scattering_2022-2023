@@ -5,10 +5,15 @@
 # ------------------------------------------------------------------------
 
 # Imports ----------------------------------------------------------------
+import matplotlib
+matplotlib.use('TkAgg')
 import numpy as np
 import math
 import matplotlib.colors as colors
 import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import tkinter as tk
 
 import view
 import maths
@@ -31,6 +36,11 @@ class PlotXY:
         self.y_min = y_min
         self.y_max = y_max
 
+        # Create the mesh
+        self.x_mesh, self.y_mesh = np.meshgrid(np.linspace(x_min, x_max, x_res), np.linspace(y_min, y_max, y_res))
+        self.dx = abs(self.x_mesh[1][1] - self.x_mesh[0][0])
+        self.dy = abs(self.y_mesh[1][1] - self.y_mesh[0][0])
+
         # Create the axis
         self.ax = root.add_subplot(root_grid[:, 0])
         self.ax.set(adjustable='box', aspect='equal')
@@ -38,14 +48,11 @@ class PlotXY:
         self.ax.set_ylim(y_min, y_max)
         self.ax.set_xlabel('x [nm]')
         self.ax.set_ylabel('y [nm]')
-
-        # Create the mesh
-        self.x_mesh, self.y_mesh = np.meshgrid(np.linspace(x_min, x_max, x_res), np.linspace(y_min, y_max, y_res))
-        self.dx = abs(self.x_mesh[1][1]-self.x_mesh[0][0])
-        self.dy = abs(self.y_mesh[1][1]-self.y_mesh[0][0])
-
-        # Create the pcolormesh
-        self.pcm = None
+        view.plot_canvas.draw()
+        self.psi = np.zeros((x_res, y_res))
+        self.pcm = self.ax.pcolormesh(self.x_mesh, self.y_mesh, self.psi, alpha=0)
+        # self.root.colorbar(self.pcm, ax=self.ax, fraction=0.046, pad=0.04)
+        self.background = view.plot_canvas.copy_from_bbox(self.ax.bbox)
 
         # Create the min and max bounds for the color legend
         self.scale_min = None
@@ -68,30 +75,27 @@ class PlotXY:
 
         # compute the square modulus of the wave function
         if view.wave_type.get():
-            z = maths.phi_sph(self.x_mesh, self.y_mesh, k)
+            self.psi = maths.phi_sph(self.x_mesh, self.y_mesh, k)
         else:
-            z = maths.phi_pl(self.x_mesh, k)
+            self.psi = maths.phi_pl(self.x_mesh, k)
         for i in range(maths.N):
-            z += a[i] * \
+            self.psi += a[i] * \
                  maths.G(k, np.sqrt((self.x_mesh - self.coordinates[i][0]) * (self.x_mesh - self.coordinates[i][0]) +
                                     (self.y_mesh - self.coordinates[i][1]) * (self.y_mesh - self.coordinates[i][1])))
-        z = (np.abs(z)) ** 2
-        z /= (self.dx * self.dy * sum(sum(z)))  # Normalization such that the integral(|psi|²) = 1
+        self.psi = (np.abs(self.psi)) ** 2
+        self.psi /= (self.dx * self.dy * sum(sum(self.psi)))  # Normalization such that the integral(|psi|²) = 1
 
         # Define the bounds of the min and max bounds for the color legend
-        self.scale_min = z.min()
-        self.scale_max = z.max()
+        self.scale_min = self.psi.min()
+        self.scale_max = self.psi.max()
         controller.update_textbox(view.scale_min_textbox, round(self.scale_min, 5))
         controller.update_textbox(view.scale_max_textbox, round(self.scale_max, 5))
 
         # Display the pcolormesh
-        self.pcm = self.ax.pcolormesh(self.x_mesh, self.y_mesh, z,
+        self.pcm = self.ax.pcolormesh(self.x_mesh, self.y_mesh, self.psi,
                                       norm=colors.LogNorm(vmin=self.scale_min, vmax=self.scale_max),
                                       cmap='YlOrRd',
                                       shading='auto')
-
-        # Display the color legend
-        self.root.colorbar(self.pcm, ax=self.ax, fraction=0.046, pad=0.04)
 
         # Display the scatterers
         for i in range(maths.N):
@@ -122,37 +126,32 @@ class PlotXY:
 
         # compute the square modulus of the wave function
         if view.wave_type.get():
-            z = maths.phi_sph(self.x_mesh, self.y_mesh, k)
+            self.psi = maths.phi_sph(self.x_mesh, self.y_mesh, k)
         else:
-            z = maths.phi_pl(self.x_mesh, k)
+            self.psi = maths.phi_pl(self.x_mesh, k)
         for i in range(maths.N):
-            z += a[i] * \
+            self.psi += a[i] * \
                  maths.G(k, np.sqrt((self.x_mesh - self.coordinates[i][0]) * (self.x_mesh - self.coordinates[i][0]) +
                                     (self.y_mesh - self.coordinates[i][1]) * (self.y_mesh - self.coordinates[i][1])))
-        z = (np.abs(z)) ** 2
-        z /= (self.dx * self.dy * sum(sum(z)))  # Normalization such that the integral(|psi|²) = 1
+        self.psi = (np.abs(self.psi)) ** 2
+        self.psi /= (self.dx * self.dy * sum(sum(self.psi)))  # Normalization such that the integral(|psi|²) = 1
 
-        if not math.isnan(z[0][0]):
+        if not math.isnan(self.psi[0][0]):
             if not update_res_bound:
-                self.pcm.set_array(z)
+                self.pcm.set_array(self.psi)
             else:
-                self.pcm = self.ax.pcolormesh(self.x_mesh, self.y_mesh, z,
+                self.pcm = self.ax.pcolormesh(self.x_mesh, self.y_mesh, self.psi,
                                               norm=colors.LogNorm(vmin=self.scale_min, vmax=self.scale_max),
                                               cmap='YlOrRd',
                                               shading='auto')
-        if view.scale_type.get() == 0:
-            self.pcm.set_norm(colors.LogNorm(vmin=self.scale_min, vmax=self.scale_max))
-        elif view.scale_type.get() == 1:
-            self.pcm.set_norm(
-                colors.PowerNorm(gamma=view.pow_scale_value, vmin=self.scale_min, vmax=self.scale_max))
-        elif view.scale_type.get() == 2:
-            self.pcm.set_norm(colors.BoundaryNorm(boundaries=[self.scale_min,
-                                                              float(view.step_scale_textbox.get()),
-                                                              self.scale_max], ncolors=256))
-
-        for i in range(maths.N):
-            self.scatterer_list[i].remove()
-            self.ax.add_patch(self.scatterer_list[i])
+            view.plot_canvas.restore_region(self.background)
+            self.ax.draw_artist(self.pcm)
+            for i in range(maths.N):
+                self.ax.draw_artist(self.scatterer_list[i])
+                self.scatterer_list[i].remove()
+                self.ax.add_patch(self.scatterer_list[i])
+            self.ax.draw_artist(self.contour)
+            view.plot_canvas.blit(view.xy_plot.ax.bbox)
 
     def update_mesh(self, update_x_res, update_x_min, update_x_max, update_y_res, update_y_min, update_y_max):
         self.x_mesh, self.y_mesh = np.meshgrid(np.linspace(update_x_min, update_x_max, update_x_res),
@@ -197,54 +196,6 @@ class PlotK:
         print("plotK")
 
 
-class PlotDetM:
-    def __init__(self, root, im_k_res, im_k_min, im_k_max, root_grid):
-        # Set the attributes
-        self.root = root
-        self.im_k_res = im_k_res
-        self.im_k_min = im_k_min
-        self.im_k_max = im_k_max
-
-        # Create the axis
-        self.ax = root.add_subplot(root_grid[1, 1])
-        self.ax.set(adjustable='box')
-        self.ax.set_xlim(im_k_min, im_k_max)
-        self.ax.set_xlabel('Im(k) [1/nm]')
-        self.ax.set_ylabel('det(M(k))')
-
-        # Create the mesh
-        self.im_k_mesh = np.linspace(-5, 0, im_k_res)
-
-        # Create the plot
-        self.plt = None
-
-    def first_plot(self):
-        re_k = maths.k
-        det_m = []
-        for i in range(self.im_k_res):
-            det_m.append(np.abs(maths.det_m(re_k, self.im_k_mesh[i])))
-        self.ax.set_ylim(0, 2*det_m[-1])
-        self.plt, = self.ax.plot(self.im_k_mesh, det_m, color='red', linewidth=1)
-
-    def update_plot(self):
-        if self.plt is not None:
-            self.plt.remove()
-            self.plt = None
-        re_k = maths.k
-        det_m = []
-        for i in range(self.im_k_res):
-            det_m.append(np.abs(maths.det_m(re_k, self.im_k_mesh[i])))
-        self.ax.set_ylim(0, 2*det_m[-1])
-        self.plt, = self.ax.plot(self.im_k_mesh, det_m, color='red', linewidth=1)
-
-    def update_mesh(self, update_im_k_res, update_im_k_min, update_im_k_max):
-        self.im_k_mesh = np.linspace(update_im_k_min, update_im_k_max, update_im_k_res)
-        self.ax.set_xlim(update_im_k_min, update_im_k_max)
-        self.im_k_res = update_im_k_res
-        self.im_k_min = update_im_k_min
-        self.im_k_max = update_im_k_max
-
-
 class PlotTheta:
     def __init__(self, root, theta_res, theta_min, theta_max, root_grid):
         # Set the attributes
@@ -253,60 +204,63 @@ class PlotTheta:
         self.theta_min = theta_min
         self.theta_max = theta_max
 
-        # Create the axis
-        self.ax = root.add_subplot(root_grid[0, 1])
-        self.ax.set(adjustable='box')
-        self.ax.set_xlim(theta_min, theta_max)
-        self.ax.set_xlabel('\u03B8 [rad]')
-        self.ax.set_ylabel('|\u03A8|²')
-
         # Create the meshes
         self.theta_contour = np.linspace(0, 2 * math.pi, theta_res)
         self.x_contour = view.rc_value.get() * np.cos(self.theta_contour)
         self.y_contour = view.rc_value.get() * np.sin(self.theta_contour)
         self.dtheta = abs(self.theta_contour[1] - self.theta_contour[0])
+        self.psi = np.zeros(theta_res)
 
-        # Create the plot
-        self.plt = None
+        # Create the axis
+        self.ax = root.add_subplot(root_grid[0, 1])
+        self.ax.set(adjustable='box')
+        self.ax.set_xlim(theta_min, theta_max)
+        self.ax.set_ylim(0, 1)
+        self.ax.set_xlabel('\u03B8 [rad]')
+        self.ax.set_ylabel('|\u03A8|²')
+        view.plot_canvas.draw()
+        self.background = view.plot_canvas.copy_from_bbox(self.ax.bbox)
+        self.line = None
 
     def first_plot(self):
         k = maths.k
         a = maths.a
         coordinates = maths.coordinates
         if view.wave_type:
-            z = maths.phi_sph(self.x_contour, self.y_contour, k)
+            self.psi = maths.phi_sph(self.x_contour, self.y_contour, k)
         else:
-            z = maths.phi_pl(self.x_contour, k)
+            self.psi = maths.phi_pl(self.x_contour, k)
         for i in range(maths.N):
             dx = self.x_contour - coordinates[i][0]
             dy = self.y_contour - coordinates[i][1]
-            z += a[i] * maths.G(k, np.sqrt(dx * dx + dy * dy))
-        z = (np.abs(z)) ** 2
-        z /= (self.dtheta * sum(z))
-        if not math.isnan(z[0]):
-            self.ax.set_ylim(0, z.max() + 0.01)
-            self.plt, = self.ax.plot(self.theta_contour, z, color='blue', linewidth=1)
+            self.psi += a[i] * maths.G(k, np.sqrt(dx * dx + dy * dy))
+        self.psi = (np.abs(self.psi)) ** 2
+        self.psi /= max(self.psi)
+        if not math.isnan(self.psi[0]):
+            self.line = self.ax.plot(self.theta_contour, self.psi, color='blue', linewidth=1)
+            self.ax.add_line(self.line[0])
 
     def update_plot(self):
-        if self.plt is not None:
-            self.plt.remove()
-            self.plt = None
+        view.plot_canvas.restore_region(self.background)
         k = maths.k
         a = maths.a
         coordinates = maths.coordinates
         if view.wave_type:
-            z = maths.phi_sph(self.x_contour, self.y_contour, k)
+            self.psi = maths.phi_sph(self.x_contour, self.y_contour, k)
         else:
-            z = maths.phi_pl(self.x_contour, k)
+            self.psi = maths.phi_pl(self.x_contour, k)
         for i in range(maths.N):
             dx = self.x_contour - coordinates[i][0]
             dy = self.y_contour - coordinates[i][1]
-            z += a[i] * maths.G(k, np.sqrt(dx * dx + dy * dy))
-        z = (np.abs(z)) ** 2
-        z /= (self.dtheta * sum(z))
-        if not math.isnan(z[0]):
-            self.ax.set_ylim(0, z.max() + 0.01)
-            self.plt, = self.ax.plot(self.theta_contour, z, color='blue', linewidth=1)
+            self.psi += a[i] * maths.G(k, np.sqrt(dx * dx + dy * dy))
+        self.psi = (np.abs(self.psi)) ** 2
+        self.psi /= max(self.psi)
+        if not math.isnan(self.psi[0]):
+            self.line[0].set_data(self.theta_contour, self.psi)
+            view.plot_canvas.restore_region(self.background)
+            self.ax.draw_artist(self.line[0])
+            view.plot_canvas.blit(self.ax.bbox)
+            view.plot_canvas.blit(view.xy_plot.ax.bbox)
 
     def update_mesh(self, update_res):
         if update_res:
