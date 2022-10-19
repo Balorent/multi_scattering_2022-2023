@@ -5,10 +5,13 @@
 # ------------------------------------------------------------------------
 
 # Imports ----------------------------------------------------------------
+import matplotlib
+matplotlib.use('TkAgg')
 import tkinter as tk
 import matplotlib.colors as colors
 import numpy as np
 import math
+import time
 
 import view
 import maths
@@ -57,7 +60,6 @@ def button_release_callback(event):
     """ Detects press release and removes any interaction with the plot """
     global in_range
     in_range = -1
-    view.plot_canvas.draw()
 
 
 def motion_notify_callback(event):
@@ -69,9 +71,7 @@ def motion_notify_callback(event):
         r_i, theta_i = np.sqrt(x_i ** 2 + y_i ** 2), np.arctan2(y_i, x_i) + (np.arctan2(y_i, x_i) < 0) * 2 * math.pi
         view.xy_plot.update_plot(in_range, 0, scattering_amp_bool, x_i, y_i)
         view.theta_plot.update_plot()
-        view.resonances_plot.update_plot()
         set_rightpanel(x_i, y_i, r_i, theta_i)
-        view.plot_canvas.draw()
 
 
 def set_rightpanel(x, y, r, theta):
@@ -111,10 +111,6 @@ def update_x_from_tb(event):
         # update the plots
         view.xy_plot.update_plot(selected_scatterer, 0, scattering_amp_bool, new_x, y)
         view.theta_plot.update_plot()
-        view.resonances_plot.update_plot()
-
-        # refresh the view
-        view.plot_canvas.draw()
 
 
 def update_y_from_tb(event):
@@ -136,10 +132,6 @@ def update_y_from_tb(event):
         # update the plots
         view.xy_plot.update_plot(selected_scatterer, 0, scattering_amp_bool, x, new_y)
         view.theta_plot.update_plot()
-        view.resonances_plot.update_plot()
-
-        # refresh the view
-        view.plot_canvas.draw()
 
 
 def update_r_from_tb(event):
@@ -161,10 +153,6 @@ def update_r_from_tb(event):
         # update the plots
         view.xy_plot.update_plot(selected_scatterer, 0, scattering_amp_bool, new_x, new_y)
         view.theta_plot.update_plot()
-        view.resonances_plot.update_plot()
-
-        # refresh the view
-        view.plot_canvas.draw()
 
 
 def update_theta_from_tb(event):
@@ -186,10 +174,6 @@ def update_theta_from_tb(event):
         # update the plots
         view.xy_plot.update_plot(selected_scatterer, 0, scattering_amp_bool, new_x, new_y)
         view.theta_plot.update_plot()
-        view.resonances_plot.update_plot()
-
-        # refresh the view
-        view.plot_canvas.draw()
 
 
 def update_k_from_tb(event):
@@ -198,8 +182,13 @@ def update_k_from_tb(event):
     maths.k = new_k
     view.xy_plot.update_plot(-1, 0, scattering_amp_bool)
     view.theta_plot.update_plot()
-    view.resonances_plot.update_plot()
-    view.plot_canvas.draw()
+    update_textbox(view.det_m_textbox, round(np.abs(maths.det_m(maths.k, float(view.im_k_textbox.get()))), 6))
+
+
+def update_im_k_from_tb(event):
+    new_im_k = float(view.im_k_textbox.get())
+    view.im_k_value.set(new_im_k)
+    update_textbox(view.det_m_textbox, round(np.abs(maths.det_m(maths.k, new_im_k)), 6))
 
 
 def update_rc_from_tb(event):
@@ -208,7 +197,7 @@ def update_rc_from_tb(event):
     view.xy_plot.contour.radius = new_rc
     view.theta_plot.update_mesh(0)
     view.theta_plot.update_plot()
-    view.plot_canvas.draw()
+    view.xy_plot.update_plot(-1, 0, scattering_amp_bool)
 
 
 def update_pow_arg_from_tb(event):
@@ -257,10 +246,6 @@ def update_x_from_slider(value):
         # update the plot
         view.xy_plot.update_plot(selected_scatterer, 0, scattering_amp_bool, new_x, y)
         view.theta_plot.update_plot()
-        view.resonances_plot.update_plot()
-
-        # refresh the view
-        view.plot_canvas.draw()
 
 
 def update_y_from_slider(value):
@@ -282,10 +267,6 @@ def update_y_from_slider(value):
         # update the plot
         view.xy_plot.update_plot(selected_scatterer, 0, scattering_amp_bool, x, new_y)
         view.theta_plot.update_plot()
-        view.resonances_plot.update_plot()
-
-        # refresh the view
-        view.plot_canvas.draw()
 
 
 def update_r_from_slider(value):
@@ -307,10 +288,6 @@ def update_r_from_slider(value):
         # update the plot
         view.xy_plot.update_plot(selected_scatterer, 0, scattering_amp_bool, new_x, new_y)
         view.theta_plot.update_plot()
-        view.resonances_plot.update_plot()
-
-        # refresh the view
-        view.plot_canvas.draw()
 
 
 def update_theta_from_slider(value):
@@ -332,10 +309,6 @@ def update_theta_from_slider(value):
         # update the plot
         view.xy_plot.update_plot(selected_scatterer, 0, scattering_amp_bool, new_x, new_y)
         view.theta_plot.update_plot()
-        view.resonances_plot.update_plot()
-
-        # refresh the view
-        view.plot_canvas.draw()
 
 
 def update_k_from_slider(value):
@@ -344,8 +317,13 @@ def update_k_from_slider(value):
     update_textbox(view.k_textbox, new_k)
     view.xy_plot.update_plot(-1, 0, scattering_amp_bool)
     view.theta_plot.update_plot()
-    view.resonances_plot.update_plot()
-    view.plot_canvas.draw()
+    update_textbox(view.det_m_textbox, round(np.abs(maths.det_m(maths.k, float(view.im_k_textbox.get()))), 6))
+
+
+def update_im_k_from_slider(value):
+    new_im_k = float(value)
+    update_textbox(view.im_k_textbox, new_im_k)
+    update_textbox(view.det_m_textbox, round(np.abs(maths.det_m(maths.k, new_im_k)), 6))
 
 
 def update_step_arg_from_slider(value):
@@ -361,7 +339,7 @@ def update_rc_from_slider(value):
     view.xy_plot.contour.radius = new_rc
     view.theta_plot.update_mesh(0)
     view.theta_plot.update_plot()
-    view.plot_canvas.draw()
+    view.xy_plot.update_plot(-1, 0, scattering_amp_bool)
 
 
 # Buttons ----------------------------------------------------------------
@@ -369,16 +347,12 @@ def plane_wave():
     view.wave_type.set(0)
     view.xy_plot.update_plot(-1, 0, scattering_amp_bool)
     view.theta_plot.update_plot()
-    view.resonances_plot.update_plot()
-    view.plot_canvas.draw()
 
 
 def spherical_wave():
     view.wave_type.set(1)
     view.xy_plot.update_plot(-1, 0, scattering_amp_bool)
     view.theta_plot.update_plot()
-    view.resonances_plot.update_plot()
-    view.plot_canvas.draw()
 
 
 def scale_auto_refresh():
@@ -445,21 +419,24 @@ def apply_res_bounds():
     view.y_res_value = int(view.y_res_textbox.get())
     view.y_min_value = float(view.y_min_textbox.get())
     view.y_max_value = float(view.y_max_textbox.get())
-    view.im_k_res_value = int(view.im_k_res_textbox.get())
-    view.im_k_min_value = float(view.im_k_min_textbox.get())
-    view.im_k_max_value = float(view.im_k_max_textbox.get())
     view.theta_res_value = int(view.theta_res_textbox.get())
 
     view.xy_plot.update_mesh(view.x_res_value, view.x_min_value, view.x_max_value,
                              view.y_res_value, view.y_min_value, view.y_max_value)
     view.theta_plot.update_mesh(view.theta_res_value)
-    view.resonances_plot.update_mesh(view.im_k_res_value, view.im_k_min_value, view.im_k_max_value)
 
     view.xy_plot.update_plot(-1, 1, scattering_amp_bool)
+    if view.scale_type.get() == 0:
+        view.xy_plot.pcm.set_norm(colors.LogNorm(vmin=view.xy_plot.scale_min, vmax=view.xy_plot.scale_max))
+    elif view.scale_type.get() == 1:
+        view.xy_plot.pcm.set_norm(colors.PowerNorm(gamma=view.pow_scale_value, vmin=view.xy_plot.scale_min, vmax=view.xy_plot.scale_max))
+    elif view.scale_type.get() == 2:
+        view.xy_plot.pcm.set_norm(colors.BoundaryNorm(boundaries=[view.xy_plot.scale_min,
+                                                                  float(view.step_scale_textbox.get()),
+                                                                  view.xy_plot.scale_max], ncolors=256))
     view.theta_plot.update_plot()
-    view.resonances_plot.update_plot()
     view.plot_canvas.draw()
 
 
 def save():
-    print("save !")
+    print("(à réimplémenter !)")
