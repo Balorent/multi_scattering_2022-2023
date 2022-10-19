@@ -213,7 +213,7 @@ class PlotDetM:
         self.ax.set_ylabel('det(M(k))')
 
         # Create the mesh
-        self.im_k_mesh = np.linspace(-5, 0, im_k_res)
+        self.im_k_mesh = np.linspace(im_k_min, im_k_max, im_k_res)
 
         # Create the plot
         self.plt = None
