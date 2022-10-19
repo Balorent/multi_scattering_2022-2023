@@ -5,6 +5,8 @@
 # ------------------------------------------------------------------------
 
 # Imports ----------------------------------------------------------------
+import matplotlib
+matplotlib.use('TkAgg')
 import tkinter as tk
 from tkinter import ttk, HORIZONTAL, LEFT, BOTH, RIGHT, Y, VERTICAL
 import matplotlib.gridspec as gridspec
@@ -12,12 +14,10 @@ import math
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
-import matplotlib
 
 from Plots import PlotXY
 from Plots import PlotK
 from Plots import PlotTheta
-from Plots import PlotDetM
 import maths
 import controller
 
@@ -94,12 +94,6 @@ y_max_textbox = None
 y_max_value = 10
 y_min_textbox = None
 y_min_value = -10
-im_k_res_textbox = None
-im_k_res_value = 3
-im_k_max_textbox = None
-im_k_max_value = 0
-im_k_min_textbox = None
-im_k_min_value = -2
 theta_res_textbox = None
 theta_res_value = 1500
 apply_res_bounds_button = None
@@ -112,8 +106,7 @@ resonances_plot = None
 
 
 def initialise():
-    font = {'size': 7}
-    matplotlib.rc('font', **font)
+    global plot_canvas
     initialize_window()
     initialize_plot_panel()
     initialize_control_panel()
@@ -123,6 +116,7 @@ def initialise():
     resonances_plot.first_plot()
 
     # Loop
+    plot_canvas.draw()
     window.mainloop()
 
 
@@ -138,14 +132,16 @@ def initialize_plot_panel():
     global xy_plot, theta_plot, resonances_plot, plot_canvas
 
     plot_panel.pack(side=tk.LEFT, fill=BOTH, expand=1)
-    plot_figure = plt.Figure(figsize=(window.winfo_screenheight()*14/1080, window.winfo_screenheight()*7/1080))
+    plot_figure = plt.Figure(figsize=(window.winfo_screenheight()*16/1080, window.winfo_screenheight()*8/1080))
     plot_canvas = FigureCanvasTkAgg(plot_figure, plot_panel)
     plot_canvas.get_tk_widget().pack(side=tk.LEFT)
     plot_grid = gridspec.GridSpec(2, 2, height_ratios=[1, 2], width_ratios=[3, 2])
 
-    xy_plot = PlotXY(plot_figure, x_res_value, x_min_value, x_max_value, y_res_value, y_min_value, y_max_value, plot_grid)
-    theta_plot = PlotTheta(plot_figure, theta_res_value, 0, 2 * math.pi, plot_grid)
-    resonances_plot = PlotDetM(plot_figure, im_k_res_value, im_k_min_value, im_k_max_value, plot_grid)
+    plot_canvas.draw()
+
+    xy_plot = PlotXY(plot_figure, 100, -10, 10, 100, -10, 10, plot_grid)
+    theta_plot = PlotTheta(plot_figure, 1000, 0, 2 * math.pi, plot_grid)
+    resonances_plot = PlotK(plot_figure, 100, 0, 5, 100, -5, 0, plot_grid)
 
     plot_figure.canvas.mpl_connect('button_press_event', controller.button_press_callback)
     plot_figure.canvas.mpl_connect('button_release_event', controller.button_release_callback)
@@ -160,7 +156,7 @@ def initialize_control_panel():
         rc_textbox, rc_value, scattering_amp_button, hide_scatterers_button, x_res_textbox, x_res_value, \
         x_max_textbox, x_max_value, x_min_textbox, x_min_value, y_res_textbox, y_res_value, y_max_textbox, \
         y_max_value, y_min_textbox, y_min_value, theta_res_textbox, theta_res_value, apply_res_bounds_button, \
-        save_button, im_k_slider, im_k_textbox, det_m_textbox, im_k_res_textbox, im_k_max_textbox, im_k_min_textbox
+        save_button, im_k_slider, im_k_textbox, det_m_textbox
 
     control_panel.pack(side=tk.RIGHT, fill=BOTH, expand=1)
     control_canvas = tk.Canvas(control_panel, width=300)
@@ -235,6 +231,26 @@ def initialize_control_panel():
     k_textbox.grid(row=row, column=2)
     row += 1
     controller.update_textbox(k_textbox, round(maths.k, 5))
+
+    # det(M)
+    ttk.Separator(control_panel_utilities, orient=HORIZONTAL).grid(row=row, column=0, ipadx=150, pady=10, columnspan=3)
+    row += 1
+    tk.Label(control_panel_utilities, text="det(M)").grid(row=row, column=0, sticky="nsew", columnspan=3)
+    row += 1
+
+    tk.Label(control_panel_utilities, text="det(M) = ").grid(row=row, column=0, sticky="w")
+    det_m_textbox = tk.Entry(control_panel_utilities, width=10)
+    det_m_textbox.grid(row=row, column=2)
+    row += 1
+    im_k_slider = tk.Scale(control_panel_utilities, from_=-5, to=0, resolution=0.01, orient=tk.HORIZONTAL, length=200,
+                           label="Im(k) [1/nm]", showvalue=0, variable=im_k_value, command=controller.update_im_k_from_slider)
+    im_k_textbox = tk.Entry(control_panel_utilities, width=10)
+    im_k_slider.grid(row=row, column=0, columnspan=2)
+    im_k_slider.set(0)
+    im_k_textbox.grid(row=row, column=2)
+    row += 1
+    controller.update_textbox(im_k_textbox, 0)
+    controller.update_textbox(det_m_textbox, np.abs(maths.det_m(maths.k, im_k_value.get())))
 
     # Colorbar
     ttk.Separator(control_panel_utilities, orient=HORIZONTAL).grid(row=row, column=0, ipadx=150, pady=10, columnspan=3)
@@ -340,22 +356,9 @@ def initialize_control_panel():
     y_max_textbox.grid(row=1, column=5)
     controller.update_textbox(y_max_textbox, round(xy_plot.y_max, 5))
 
-    tk.Label(res_bound_panel, text="imk res").grid(row=2, column=0, pady=2)
-    im_k_res_textbox = tk.Entry(res_bound_panel, width=5)
-    im_k_res_textbox.grid(row=2, column=1)
-    controller.update_textbox(im_k_res_textbox, round(im_k_res_value, 3))
-    tk.Label(res_bound_panel, text="imk min").grid(row=2, column=2, ipadx=10)
-    im_k_min_textbox = tk.Entry(res_bound_panel, width=5)
-    im_k_min_textbox.grid(row=2, column=3)
-    controller.update_textbox(im_k_min_textbox, round(im_k_min_value, 3))
-    tk.Label(res_bound_panel, text="imk max").grid(row=2, column=4, ipadx=10)
-    im_k_max_textbox = tk.Entry(res_bound_panel, width=5)
-    im_k_max_textbox.grid(row=2, column=5)
-    controller.update_textbox(im_k_max_textbox, round(im_k_max_value, 3))
-
-    tk.Label(res_bound_panel, text="\u03B8 res").grid(row=3, column=0, pady=2)
+    tk.Label(res_bound_panel, text="\u03B8 res").grid(row=2, column=0, pady=2)
     theta_res_textbox = tk.Entry(res_bound_panel, width=5)
-    theta_res_textbox.grid(row=3, column=1)
+    theta_res_textbox.grid(row=2, column=1)
     row += 1
     controller.update_textbox(theta_res_textbox, round(theta_plot.theta_res, 5))
 
@@ -379,6 +382,7 @@ def initialize_control_panel():
     r_textbox.bind("<Return>", controller.update_r_from_tb)
     theta_textbox.bind("<Return>", controller.update_theta_from_tb)
     k_textbox.bind("<Return>", controller.update_k_from_tb)
+    im_k_textbox.bind("<Return>", controller.update_im_k_from_tb)
     rc_textbox.bind("<Return>", controller.update_rc_from_tb)
     pow_scale_textbox.bind("<Return>", controller.update_pow_arg_from_tb)
     step_scale_textbox.bind("<Return>", controller.update_step_arg_from_tb)
