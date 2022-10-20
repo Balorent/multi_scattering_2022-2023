@@ -1,7 +1,7 @@
 #                                 VIEW.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    16 october 2022
+# Last edition :    20 october 2022
 # ------------------------------------------------------------------------
 
 # Imports ----------------------------------------------------------------
@@ -17,6 +17,7 @@ import numpy as np
 
 from Plots import PlotXY
 from Plots import PlotK
+from Plots import PlotDetM
 from Plots import PlotTheta
 import maths
 import controller
@@ -55,7 +56,6 @@ k_slider = None
 k_textbox = None
 k_value = tk.DoubleVar()
 k_value.set(maths.k)
-det_m_textbox = None
 im_k_slider = None
 im_k_textbox = None
 im_k_value = tk.DoubleVar()
@@ -94,6 +94,12 @@ y_max_textbox = None
 y_max_value = 10
 y_min_textbox = None
 y_min_value = -10
+im_k_res_textbox = None
+im_k_res_value = 100
+im_k_max_textbox = None
+im_k_max_value = 0
+im_k_min_textbox = None
+im_k_min_value = -2
 theta_res_textbox = None
 theta_res_value = 1500
 apply_res_bounds_button = None
@@ -141,7 +147,7 @@ def initialize_plot_panel():
 
     xy_plot = PlotXY(plot_figure, 100, -10, 10, 100, -10, 10, plot_grid)
     theta_plot = PlotTheta(plot_figure, 1000, 0, 2 * math.pi, plot_grid)
-    resonances_plot = PlotK(plot_figure, 100, 0, 5, 100, -5, 0, plot_grid)
+    resonances_plot = PlotDetM(plot_figure, im_k_res_value, im_k_min_value, im_k_max_value, plot_grid)
 
     plot_figure.canvas.mpl_connect('button_press_event', controller.button_press_callback)
     plot_figure.canvas.mpl_connect('button_release_event', controller.button_release_callback)
@@ -156,7 +162,7 @@ def initialize_control_panel():
         rc_textbox, rc_value, scattering_amp_button, hide_scatterers_button, x_res_textbox, x_res_value, \
         x_max_textbox, x_max_value, x_min_textbox, x_min_value, y_res_textbox, y_res_value, y_max_textbox, \
         y_max_value, y_min_textbox, y_min_value, theta_res_textbox, theta_res_value, apply_res_bounds_button, \
-        save_button, im_k_slider, im_k_textbox, det_m_textbox
+        save_button, im_k_slider, im_k_textbox, im_k_res_textbox, im_k_max_textbox, im_k_min_textbox
 
     control_panel.pack(side=tk.RIGHT, fill=BOTH, expand=1)
     control_canvas = tk.Canvas(control_panel, width=300)
@@ -199,7 +205,7 @@ def initialize_control_panel():
     row += 1
 
     theta_slider = tk.Scale(control_panel_utilities, from_=0, to=2 * math.pi, resolution=0.01, orient=tk.HORIZONTAL, length=200,
-                            label="\u03B8 [rad]", showvalue=0, variable=theta_value,
+                            label="\u03B8 [deg]", showvalue=0, variable=theta_value,
                             command=controller.update_theta_from_slider)
     theta_textbox = tk.Entry(control_panel_utilities, width=10)
     theta_textbox = tk.Entry(control_panel_utilities, width=10)
@@ -231,26 +237,6 @@ def initialize_control_panel():
     k_textbox.grid(row=row, column=2)
     row += 1
     controller.update_textbox(k_textbox, round(maths.k, 5))
-
-    # det(M)
-    ttk.Separator(control_panel_utilities, orient=HORIZONTAL).grid(row=row, column=0, ipadx=150, pady=10, columnspan=3)
-    row += 1
-    tk.Label(control_panel_utilities, text="det(M)").grid(row=row, column=0, sticky="nsew", columnspan=3)
-    row += 1
-
-    tk.Label(control_panel_utilities, text="det(M) = ").grid(row=row, column=0, sticky="w")
-    det_m_textbox = tk.Entry(control_panel_utilities, width=10)
-    det_m_textbox.grid(row=row, column=2)
-    row += 1
-    im_k_slider = tk.Scale(control_panel_utilities, from_=-5, to=0, resolution=0.01, orient=tk.HORIZONTAL, length=200,
-                           label="Im(k) [1/nm]", showvalue=0, variable=im_k_value, command=controller.update_im_k_from_slider)
-    im_k_textbox = tk.Entry(control_panel_utilities, width=10)
-    im_k_slider.grid(row=row, column=0, columnspan=2)
-    im_k_slider.set(0)
-    im_k_textbox.grid(row=row, column=2)
-    row += 1
-    controller.update_textbox(im_k_textbox, 0)
-    controller.update_textbox(det_m_textbox, np.abs(maths.det_m(maths.k, im_k_value.get())))
 
     # Colorbar
     ttk.Separator(control_panel_utilities, orient=HORIZONTAL).grid(row=row, column=0, ipadx=150, pady=10, columnspan=3)
@@ -356,9 +342,22 @@ def initialize_control_panel():
     y_max_textbox.grid(row=1, column=5)
     controller.update_textbox(y_max_textbox, round(xy_plot.y_max, 5))
 
-    tk.Label(res_bound_panel, text="\u03B8 res").grid(row=2, column=0, pady=2)
+    tk.Label(res_bound_panel, text="imk res").grid(row=2, column=0, pady=2)
+    im_k_res_textbox = tk.Entry(res_bound_panel, width=5)
+    im_k_res_textbox.grid(row=2, column=1)
+    controller.update_textbox(im_k_res_textbox, round(im_k_res_value, 3))
+    tk.Label(res_bound_panel, text="imk min").grid(row=2, column=2, ipadx=10)
+    im_k_min_textbox = tk.Entry(res_bound_panel, width=5)
+    im_k_min_textbox.grid(row=2, column=3)
+    controller.update_textbox(im_k_min_textbox, round(im_k_min_value, 3))
+    tk.Label(res_bound_panel, text="imk max").grid(row=2, column=4, ipadx=10)
+    im_k_max_textbox = tk.Entry(res_bound_panel, width=5)
+    im_k_max_textbox.grid(row=2, column=5)
+    controller.update_textbox(im_k_max_textbox, round(im_k_max_value, 3))
+
+    tk.Label(res_bound_panel, text="\u03B8 res").grid(row=3, column=0, pady=2)
     theta_res_textbox = tk.Entry(res_bound_panel, width=5)
-    theta_res_textbox.grid(row=2, column=1)
+    theta_res_textbox.grid(row=3, column=1)
     row += 1
     controller.update_textbox(theta_res_textbox, round(theta_plot.theta_res, 5))
 
@@ -382,7 +381,6 @@ def initialize_control_panel():
     r_textbox.bind("<Return>", controller.update_r_from_tb)
     theta_textbox.bind("<Return>", controller.update_theta_from_tb)
     k_textbox.bind("<Return>", controller.update_k_from_tb)
-    im_k_textbox.bind("<Return>", controller.update_im_k_from_tb)
     rc_textbox.bind("<Return>", controller.update_rc_from_tb)
     pow_scale_textbox.bind("<Return>", controller.update_pow_arg_from_tb)
     step_scale_textbox.bind("<Return>", controller.update_step_arg_from_tb)
