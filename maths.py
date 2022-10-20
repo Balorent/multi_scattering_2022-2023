@@ -1,7 +1,7 @@
 #                                 MATH.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    16 october 2022
+# Last edition :    20 october 2022
 # ------------------------------------------------------------------------
 
 
@@ -22,7 +22,7 @@ if __name__ == "__main__":
 # Variables --------------------------------------------------------------
 
 # Scatterers parameters #
-N = 10                                      # Number of scatterers
+N = 2                                       # Number of scatterers
 radiusBall = 5                              # Radius of the ball in which the scatterers will be randomly placed
 coordinates = [[0, 0] for i in range(N)]    # Coordinates of each scatterer [[x_1, y_1], [x_2, y_2], ..., [x_N, y_N]]
 
@@ -75,8 +75,7 @@ def initialize_scatterers():
         xi = random.random() * 2*radiusBall - radiusBall
         yMax = radiusBall * np.sin(np.arccos(xi/radiusBall))
         yi = random.random() * 2*yMax - yMax
-        #coordinates[i] = [xi, yi]
-        coordinates[i] = [5*math.cos(2*math.pi*i/10), 5*math.sin(2*math.pi*i/10)]
+        coordinates[i] = [xi, yi]
 
 
 def compute_a():
