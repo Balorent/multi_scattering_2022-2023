@@ -1,7 +1,7 @@
 #                                 PLOTS.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    16 october 2022
+# Last edition :    20 october 2022
 # ------------------------------------------------------------------------
 
 # Imports ----------------------------------------------------------------
@@ -50,7 +50,7 @@ class PlotXY:
         self.ax.set_ylabel('y [nm]')
         view.plot_canvas.draw()
         self.psi = np.zeros((x_res, y_res))
-        self.pcm = self.ax.pcolormesh(self.x_mesh, self.y_mesh, self.psi, alpha=0)
+        self.pcm = self.ax.pcolormesh(self.x_mesh, self.y_mesh, self.psi, alpha=0, shading='auto')
         # self.root.colorbar(self.pcm, ax=self.ax, fraction=0.046, pad=0.04)
         self.background = view.plot_canvas.copy_from_bbox(self.ax.bbox)
 
@@ -151,7 +151,7 @@ class PlotXY:
                 self.scatterer_list[i].remove()
                 self.ax.add_patch(self.scatterer_list[i])
             self.ax.draw_artist(self.contour)
-            view.plot_canvas.blit(view.xy_plot.ax.bbox)
+            view.plot_canvas.blit(self.ax.bbox)
 
     def update_mesh(self, update_x_res, update_x_min, update_x_max, update_y_res, update_y_min, update_y_max):
         self.x_mesh, self.y_mesh = np.meshgrid(np.linspace(update_x_min, update_x_max, update_x_res),
@@ -159,7 +159,7 @@ class PlotXY:
         self.dx = abs(self.x_mesh[1][1] - self.x_mesh[0][0])
         self.dy = abs(self.y_mesh[1][1] - self.y_mesh[0][0])
         for i in range(maths.N):
-            self.scatterer_list[i].radius *= (update_x_max - update_x_min) / 20
+            self.scatterer_list[i].radius = 0.1 * (update_x_max - update_x_min) / 20
         self.ax.set_xlim(update_x_min, update_x_max)
         self.ax.set_ylim(update_y_min, update_y_max)
         self.x_res = update_x_res
@@ -194,6 +194,57 @@ class PlotK:
 
     def first_plot(self):
         print("plotK")
+
+
+class PlotDetM:
+    def __init__(self, root, im_k_res, im_k_min, im_k_max, root_grid):
+        # Set the attributes
+        self.root = root
+        self.im_k_res = im_k_res
+        self.im_k_min = im_k_min
+        self.im_k_max = im_k_max
+
+        # Create the mesh
+        self.im_k_mesh = np.linspace(im_k_min, im_k_max, im_k_res)
+        self.det_m = np.zeros(im_k_res)
+
+        # Create the axis
+        self.ax = root.add_subplot(root_grid[1, 1])
+        self.ax.set(adjustable='box')
+        self.ax.set_xlim(im_k_min, im_k_max)
+        self.ax.set_xlabel('Im(k) [1/nm]')
+        self.ax.set_ylabel('det(M(k))')
+        view.plot_canvas.draw()
+        self.background = view.plot_canvas.copy_from_bbox(self.ax.bbox)
+        self.line = None
+
+    def first_plot(self):
+        re_k = maths.k
+        for i in range(self.im_k_res):
+            self.det_m[i] = np.abs(maths.det_m(re_k, self.im_k_mesh[i]))
+        self.ax.set_ylim(0, 2*self.det_m[-1])
+        self.line = self.ax.plot(self.im_k_mesh, self.det_m, color='red', linewidth=1)
+        self.ax.add_line(self.line[0])
+
+    def update_plot(self):
+        re_k = maths.k
+        for i in range(self.im_k_res):
+            self.det_m[i] = np.abs(maths.det_m(re_k, self.im_k_mesh[i]))
+        if not math.isnan(self.det_m[0]):
+            print(2 * self.det_m[-1])
+            self.ax.set_ylim(0, 2*self.det_m[-1])
+            self.line[0].set_data(self.im_k_mesh, self.det_m)
+            view.plot_canvas.restore_region(self.background)
+            self.ax.draw_artist(self.line[0])
+            view.plot_canvas.blit(self.ax.bbox)
+
+    def update_mesh(self, update_im_k_res, update_im_k_min, update_im_k_max):
+        self.im_k_mesh = np.linspace(update_im_k_min, update_im_k_max, update_im_k_res)
+        self.ax.set_xlim(update_im_k_min, update_im_k_max)
+        self.im_k_res = update_im_k_res
+        self.im_k_min = update_im_k_min
+        self.im_k_max = update_im_k_max
+        self.det_m = np.zeros(update_im_k_res)
 
 
 class PlotTheta:
@@ -260,7 +311,6 @@ class PlotTheta:
             view.plot_canvas.restore_region(self.background)
             self.ax.draw_artist(self.line[0])
             view.plot_canvas.blit(self.ax.bbox)
-            view.plot_canvas.blit(view.xy_plot.ax.bbox)
 
     def update_mesh(self, update_res):
         if update_res:
@@ -269,3 +319,4 @@ class PlotTheta:
         self.y_contour = float(view.rc_textbox.get()) * np.sin(self.theta_contour)
         self.dtheta = abs(self.theta_contour[1] - self.theta_contour[0])
         self.theta_res = view.theta_res_value
+        self.psi = np.zeros(update_res)
