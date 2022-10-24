@@ -14,6 +14,7 @@ import math
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
+import platform
 
 from Plots import PlotXY
 from Plots import PlotK
@@ -48,6 +49,9 @@ r_value = tk.DoubleVar()
 theta_slider = None
 theta_textbox = None
 theta_value = tk.DoubleVar()
+add_scatterer_button = None
+remove_scatterer_button = None
+remove_all_button = None
 plane_wave_button = None
 spherical_wave_button = None
 wave_type = tk.IntVar()  # 1 if spherical, 0 if plane
@@ -56,10 +60,10 @@ k_slider = None
 k_textbox = None
 k_value = tk.DoubleVar()
 k_value.set(maths.k)
-im_k_slider = None
-im_k_textbox = None
-im_k_value = tk.DoubleVar()
-im_k_value.set(0)
+lambda_slider = None
+lambda_textbox = None
+lambda_value = tk.DoubleVar()
+lambda_value.set(2*math.pi/maths.k)
 refresh_scale_button = None
 scale_max_textbox = None
 scale_min_textbox = None
@@ -80,8 +84,11 @@ rc_slider = None
 rc_textbox = None
 rc_value = tk.DoubleVar()
 rc_value.set(8)
+entropy_textbox = None
+stddev_textbox = None
 scattering_amp_button = None
 hide_scatterers_button = None
+phase_view_button = None
 x_res_textbox = None
 x_res_value = 100
 x_max_textbox = None
@@ -103,6 +110,22 @@ im_k_min_value = -2
 theta_res_textbox = None
 theta_res_value = 1500
 apply_res_bounds_button = None
+lattice_1d_button = None
+n_1d_textbox = None
+d_1d_textbox = None
+x0_1d_textbox = None
+y0_1d_textbox = None
+r0_1d_textbox = None
+theta0_1d_textbox = None
+angle_1d_textbox = None
+lattice_2d_button = None
+nx_2d_textbox = None
+ny_2d_textbox = None
+dx_2d_textbox = None
+dy_2d_textbox = None
+x0_2d_textbox = None
+y0_2d_textbox = None
+angle_2d_textbox = None
 save_button = None
 
 # Plots #
@@ -112,7 +135,7 @@ resonances_plot = None
 
 
 def initialise():
-    global plot_canvas
+    global plot_canvas, xy_plot, theta_plot, resonances_plot
     initialize_window()
     initialize_plot_panel()
     initialize_control_panel()
@@ -127,7 +150,10 @@ def initialise():
 
 
 def initialize_window():
-    window.state('zoomed')
+    if platform.system() == "Linux":
+        window.attributes('-zoomed', True)
+    elif platform.system() == "Windows":
+        window.state('zoomed')
     window['bg'] = 'white'
     window.title("Alpha wave function")
     window.iconbitmap("")
@@ -138,7 +164,7 @@ def initialize_plot_panel():
     global xy_plot, theta_plot, resonances_plot, plot_canvas
 
     plot_panel.pack(side=tk.LEFT, fill=BOTH, expand=1)
-    plot_figure = plt.Figure(figsize=(window.winfo_screenheight()*16/1080, window.winfo_screenheight()*8/1080))
+    plot_figure = plt.Figure(figsize=(window.winfo_screenheight()*14.6/1080, window.winfo_screenheight()*7.3/1080))
     plot_canvas = FigureCanvasTkAgg(plot_figure, plot_panel)
     plot_canvas.get_tk_widget().pack(side=tk.LEFT)
     plot_grid = gridspec.GridSpec(2, 2, height_ratios=[1, 2], width_ratios=[3, 2])
@@ -156,13 +182,17 @@ def initialize_plot_panel():
 
 def initialize_control_panel():
     global x_slider, x_textbox, x_value, y_slider, y_textbox, y_value, r_slider, r_textbox, r_value, theta_slider, \
-        theta_textbox, theta_value, plane_wave_button, spherical_wave_button, k_slider, k_textbox, \
+        theta_textbox, theta_value, add_scatterer_button, remove_scatterer_button, remove_all_button, \
+        plane_wave_button, spherical_wave_button, k_slider, k_textbox, lambda_slider, lambda_textbox, \
         refresh_scale_button, scale_max_textbox, scale_min_textbox, log_scale_button, pow_scale_button, \
         step_scale_button, scale_type, pow_scale_textbox, step_scale_textbox, step_scale_slider, rc_slider, \
-        rc_textbox, rc_value, scattering_amp_button, hide_scatterers_button, x_res_textbox, x_res_value, \
-        x_max_textbox, x_max_value, x_min_textbox, x_min_value, y_res_textbox, y_res_value, y_max_textbox, \
-        y_max_value, y_min_textbox, y_min_value, theta_res_textbox, theta_res_value, apply_res_bounds_button, \
-        save_button, im_k_slider, im_k_textbox, im_k_res_textbox, im_k_max_textbox, im_k_min_textbox
+        rc_textbox, rc_value, entropy_textbox, stddev_textbox, scattering_amp_button, hide_scatterers_button, \
+        x_res_textbox, x_res_value, x_max_textbox, x_max_value, x_min_textbox, x_min_value, y_res_textbox, \
+        y_res_value, y_max_textbox, y_max_value, y_min_textbox, y_min_value, theta_res_textbox, theta_res_value, \
+        apply_res_bounds_button, im_k_res_textbox, im_k_max_textbox, im_k_min_textbox, lattice_1d_button, \
+        n_1d_textbox, d_1d_textbox, x0_1d_textbox, y0_1d_textbox, r0_1d_textbox, theta0_1d_textbox, angle_1d_textbox, \
+        lattice_2d_button, nx_2d_textbox, ny_2d_textbox, dx_2d_textbox, dy_2d_textbox, x0_2d_textbox, y0_2d_textbox, \
+        angle_2d_textbox, save_button, xy_plot, theta_plot, resonances_plot
 
     control_panel.pack(side=tk.RIGHT, fill=BOTH, expand=1)
     control_canvas = tk.Canvas(control_panel, width=300)
@@ -179,33 +209,32 @@ def initialize_control_panel():
     # Coordinates
     ttk.Separator(control_panel_utilities, orient=HORIZONTAL).grid(row=row, column=0, ipadx=150, pady=10, columnspan=3)
     row += 1
-    tk.Label(control_panel_utilities, text="Coordinates of the selected atom").grid(row=row, column=0, sticky="nsew",
-                                                                                    columnspan=3)
+    tk.Label(control_panel_utilities, text="Selected atom").grid(row=row, column=0, sticky="nsew", columnspan=3)
     row += 1
 
     x_slider = tk.Scale(control_panel_utilities, from_=-10, to=10, resolution=0.01, orient=tk.HORIZONTAL, length=200,
-                        label="x [nm]", showvalue=0, variable=x_value, command=controller.update_x_from_slider)
+                        label="x [nm]", showvalue=False, variable=x_value, command=controller.update_x_from_slider)
     x_textbox = tk.Entry(control_panel_utilities, width=10)
     x_slider.grid(row=row, column=0, columnspan=2)
     x_textbox.grid(row=row, column=2)
     row += 1
 
     y_slider = tk.Scale(control_panel_utilities, from_=-10, to=10, resolution=0.01, orient=tk.HORIZONTAL, length=200,
-                        label="y [nm]", showvalue=0, variable=y_value, command=controller.update_y_from_slider)
+                        label="y [nm]", showvalue=False, variable=y_value, command=controller.update_y_from_slider)
     y_textbox = tk.Entry(control_panel_utilities, width=10)
     y_slider.grid(row=row, column=0, columnspan=2)
     y_textbox.grid(row=row, column=2)
     row += 1
 
     r_slider = tk.Scale(control_panel_utilities, from_=0, to=10, resolution=0.01, orient=tk.HORIZONTAL, length=200,
-                        label="r [m]", showvalue=0, variable=r_value, command=controller.update_r_from_slider)
+                        label="r [m]", showvalue=False, variable=r_value, command=controller.update_r_from_slider)
     r_textbox = tk.Entry(control_panel_utilities, width=10)
     r_slider.grid(row=row, column=0, columnspan=2)
     r_textbox.grid(row=row, column=2)
     row += 1
 
-    theta_slider = tk.Scale(control_panel_utilities, from_=0, to=2 * math.pi, resolution=0.01, orient=tk.HORIZONTAL, length=200,
-                            label="\u03B8 [deg]", showvalue=0, variable=theta_value,
+    theta_slider = tk.Scale(control_panel_utilities, from_=0, to=2 * math.pi, resolution=0.01, orient=tk.HORIZONTAL,
+                            length=200, label="\u03B8 [deg]", showvalue=False, variable=theta_value,
                             command=controller.update_theta_from_slider)
     theta_textbox = tk.Entry(control_panel_utilities, width=10)
     theta_textbox = tk.Entry(control_panel_utilities, width=10)
@@ -213,24 +242,44 @@ def initialize_control_panel():
     theta_textbox.grid(row=row, column=2)
     row += 1
 
+    # Add/remove atoms
+    ttk.Separator(control_panel_utilities, orient=HORIZONTAL).grid(row=row, column=0, ipadx=150, pady=10, columnspan=3)
+    row += 1
+    tk.Label(control_panel_utilities, text="Add/remove atom").grid(row=row, column=0, sticky="nsew", columnspan=3)
+    row += 1
+
+    add_scatterer_button = tk.Button(control_panel_utilities, text="Add a scatterer", command=controller.add_scatterer)
+    add_scatterer_button.grid(row=row, column=0, columnspan=3)
+    row += 1
+
+    remove_scatterer_button = tk.Button(control_panel_utilities, text="Remove a scatterer",
+                                        command=controller.remove_scatterer)
+    remove_scatterer_button.grid(row=row, column=0, columnspan=3)
+    row += 1
+
+    remove_all_button = tk.Button(control_panel_utilities, text="Remove all", command=controller.remove_all)
+    remove_all_button.grid(row=row, column=0, columnspan=3)
+    row += 1
+
     # Incident wave
     ttk.Separator(control_panel_utilities, orient=HORIZONTAL).grid(row=row, column=0, ipadx=150, pady=10, columnspan=3)
     row += 1
-    tk.Label(control_panel_utilities, text="Incident wave parameters").grid(row=row, column=0, sticky="nsew", columnspan=3)
+    tk.Label(control_panel_utilities, text="Incident wave parameters").grid(row=row, column=0, sticky="nsew",
+                                                                            columnspan=3)
     row += 1
 
-    plane_wave_button = tk.Radiobutton(control_panel_utilities, text="Plane wave", variable=wave_type, val=0,
+    plane_wave_button = tk.Radiobutton(control_panel_utilities, text="Plane wave", variable=wave_type, value=0,
                                        command=controller.plane_wave)
     plane_wave_button.grid(row=row, column=0, sticky=tk.W)
     row += 1
 
-    spherical_wave_button = tk.Radiobutton(control_panel_utilities, text="Spherical wave", variable=wave_type, val=1,
+    spherical_wave_button = tk.Radiobutton(control_panel_utilities, text="Spherical wave", variable=wave_type, value=1,
                                            command=controller.spherical_wave)
     spherical_wave_button.grid(row=row, column=0, sticky=tk.W)
     row += 1
 
     k_slider = tk.Scale(control_panel_utilities, from_=0, to=10, resolution=0.01, orient=tk.HORIZONTAL, length=200,
-                        label="k [1/nm]", showvalue=0, variable=k_value, command=controller.update_k_from_slider)
+                        label="k [1/nm]", showvalue=False, variable=k_value, command=controller.update_k_from_slider)
     k_textbox = tk.Entry(control_panel_utilities, width=10)
     k_slider.grid(row=row, column=0, columnspan=2)
     k_slider.set(10)
@@ -238,22 +287,33 @@ def initialize_control_panel():
     row += 1
     controller.update_textbox(k_textbox, round(maths.k, 5))
 
+    lambda_slider = tk.Scale(control_panel_utilities, from_=0.5, to=10, resolution=0.1, orient=tk.HORIZONTAL, length=200,
+                             label="\u03BB [nm]", showvalue=False, variable=lambda_value,
+                             command=controller.update_lambda_from_slider)
+    lambda_textbox = tk.Entry(control_panel_utilities, width=10)
+    lambda_slider.grid(row=row, column=0, columnspan=2)
+    lambda_slider.set(2*math.pi/maths.k)
+    lambda_textbox.grid(row=row, column=2)
+    row += 1
+    controller.update_textbox(lambda_textbox, round(2*math.pi/maths.k, 5))
+
     # Colorbar
     ttk.Separator(control_panel_utilities, orient=HORIZONTAL).grid(row=row, column=0, ipadx=150, pady=10, columnspan=3)
     row += 1
     tk.Label(control_panel_utilities, text="Colorbar parameters").grid(row=row, column=0, sticky="nsew", columnspan=3)
     row += 1
 
-    refresh_scale_button = tk.Button(control_panel_utilities, text="Refresh legend scale", command=controller.scale_auto_refresh)
+    refresh_scale_button = tk.Button(control_panel_utilities, text="Refresh legend scale",
+                                     command=controller.scale_auto_refresh)
     refresh_scale_button.grid(row=row, column=0, columnspan=3)
     row += 1
 
-    tk.Label(control_panel_utilities, text="scale max").grid(row=row, column=0, sticky=tk.W)
+    tk.Label(control_panel_utilities, text="scale max = ").grid(row=row, column=0, sticky=tk.E)
     scale_max_textbox = tk.Entry(control_panel_utilities, width=10)
     scale_max_textbox.grid(row=row, column=2)
     row += 1
 
-    tk.Label(control_panel_utilities, text="scale min").grid(row=row, column=0, sticky=tk.W)
+    tk.Label(control_panel_utilities, text="scale min = ").grid(row=row, column=0, sticky=tk.E)
     scale_min_textbox = tk.Entry(control_panel_utilities, width=10)
     scale_min_textbox.grid(row=row, column=2)
     row += 1
@@ -274,9 +334,9 @@ def initialize_control_panel():
     step_scale_button = tk.Radiobutton(control_panel_utilities, text="step scale", variable=scale_type, value=2,
                                        command=controller.step_scale)
     step_scale_textbox = tk.Entry(control_panel_utilities, width=10)
-    step_scale_slider = tk.Scale(control_panel_utilities, from_=0.0001, to=0.005, resolution=0.0001, orient=tk.HORIZONTAL,
-                                 length=200, label="step", showvalue=0, variable=step_scale_value,
-                                 command=controller.update_step_arg_from_slider)
+    step_scale_slider = tk.Scale(control_panel_utilities, from_=0.0001, to=0.005, resolution=0.0001,
+                                 orient=tk.HORIZONTAL, length=200, label="step", showvalue=False,
+                                 variable=step_scale_value, command=controller.update_step_arg_from_slider)
     step_scale_button.grid(row=row, column=0, sticky=tk.W)
     step_scale_textbox.grid(row=row, column=2)
     row += 1
@@ -291,13 +351,31 @@ def initialize_control_panel():
     row += 1
 
     rc_slider = tk.Scale(control_panel_utilities, from_=0, to=10, resolution=0.01, orient=tk.HORIZONTAL,
-                         length=200, label="Contour Radius [m]", showvalue=0, variable=rc_value,
+                         length=200, label="Contour Radius [m]", showvalue=False, variable=rc_value,
                          command=controller.update_rc_from_slider)
     rc_textbox = tk.Entry(control_panel_utilities, width=10)
     rc_slider.grid(row=row, column=0, columnspan=2)
     rc_textbox.grid(row=row, column=2)
     row += 1
     controller.update_textbox(rc_textbox, round(rc_value.get(), 5))
+
+    # Functions to optimize
+    ttk.Separator(control_panel_utilities, orient=HORIZONTAL).grid(row=row, column=0, ipadx=150, pady=10, columnspan=3)
+    row += 1
+    tk.Label(control_panel_utilities, text="Optimized functions").grid(row=row, column=0, sticky="nsew",
+                                                                       columnspan=3)
+    row += 1
+
+    tk.Label(control_panel_utilities, text="entropy S = ").grid(row=row, column=0, pady=2, columnspan=2, sticky=tk.E)
+    entropy_textbox = tk.Entry(control_panel_utilities, width=10)
+    entropy_textbox.grid(row=row, column=2)
+    row += 1
+
+    tk.Label(control_panel_utilities, text="std dev \u03C3 = ").grid(row=row, column=0, pady=2, columnspan=2, sticky=tk.E)
+    stddev_textbox = tk.Entry(control_panel_utilities, width=10)
+    stddev_textbox.grid(row=row, column=2)
+    row += 1
+
 
     # Other visual parameters
     ttk.Separator(control_panel_utilities, orient=HORIZONTAL).grid(row=row, column=0, ipadx=150, pady=10, columnspan=3)
@@ -312,6 +390,11 @@ def initialize_control_panel():
 
     hide_scatterers_button = tk.Checkbutton(control_panel_utilities, text="Hide scatterers", command=controller.hide_scatterers)
     hide_scatterers_button.grid(row=row, column=0, sticky=tk.W)
+    row += 1
+
+    phase_view_button = tk.Checkbutton(control_panel_utilities, text="Phase view",
+                                            command=controller.phase_view)
+    phase_view_button.grid(row=row, column=0, sticky=tk.W)
     row += 1
 
     res_bound_panel = tk.Frame(control_panel_utilities)
@@ -365,7 +448,83 @@ def initialize_control_panel():
     apply_res_bounds_button.grid(row=row, column=0, columnspan=3)
     row += 1
 
+    # Presets
+    ttk.Separator(control_panel_utilities, orient=HORIZONTAL).grid(row=row, column=0, ipadx=150, pady=10, columnspan=3)
+    row += 1
+    tk.Label(control_panel_utilities, text="Presets").grid(row=row, column=0, sticky="nsew", columnspan=3)
+    row += 1
+
+    presets_panel = tk.Frame(control_panel_utilities)
+    presets_panel.grid(row=row, column=0, columnspan=3)
+    row_presets_panel = 0
+
+    lattice_1d_button = tk.Button(presets_panel, text="Lattice 1D", command=controller.lattice_1d)
+    lattice_1d_button.grid(row=row_presets_panel, column=0, columnspan=2)
+    row_presets_panel += 1
+    tk.Label(presets_panel, text="N").grid(row=row_presets_panel, column=0, pady=2)
+    n_1d_textbox = tk.Entry(presets_panel, width=5)
+    n_1d_textbox.grid(row=row_presets_panel, column=1)
+    row_presets_panel += 1
+    tk.Label(presets_panel, text="d").grid(row=row_presets_panel, column=0, pady=2)
+    d_1d_textbox = tk.Entry(presets_panel, width=5)
+    d_1d_textbox.grid(row=row_presets_panel, column=1)
+    row_presets_panel += 1
+    tk.Label(presets_panel, text="x0").grid(row=row_presets_panel, column=0, pady=2)
+    x0_1d_textbox = tk.Entry(presets_panel, width=5)
+    x0_1d_textbox.grid(row=row_presets_panel, column=1)
+    row_presets_panel += 1
+    tk.Label(presets_panel, text="y0").grid(row=row_presets_panel, column=0, pady=2)
+    y0_1d_textbox = tk.Entry(presets_panel, width=5)
+    y0_1d_textbox.grid(row=row_presets_panel, column=1)
+    row_presets_panel += 1
+    tk.Label(presets_panel, text="r0").grid(row=row_presets_panel, column=0, pady=2)
+    r0_1d_textbox = tk.Entry(presets_panel, width=5)
+    r0_1d_textbox.grid(row=row_presets_panel, column=1)
+    row_presets_panel += 1
+    tk.Label(presets_panel, text="\u03B80").grid(row=row_presets_panel, column=0, pady=2)
+    theta0_1d_textbox = tk.Entry(presets_panel, width=5)
+    theta0_1d_textbox.grid(row=row_presets_panel, column=1)
+    row_presets_panel += 1
+    tk.Label(presets_panel, text="\u03B1").grid(row=row_presets_panel, column=0, pady=2)
+    angle_1d_textbox = tk.Entry(presets_panel, width=5)
+    angle_1d_textbox.grid(row=row_presets_panel, column=1)
+    row_presets_panel += 1
+
+    row_presets_panel = 0
+    lattice_2d_button = tk.Button(presets_panel, text="Lattice 2D", command=controller.lattice_2d)
+    lattice_2d_button.grid(row=row_presets_panel, column=2, columnspan=2)
+    row_presets_panel += 1
+    tk.Label(presets_panel, text="Nx").grid(row=row_presets_panel, column=2, pady=2)
+    nx_2d_textbox = tk.Entry(presets_panel, width=5)
+    nx_2d_textbox.grid(row=row_presets_panel, column=3)
+    row_presets_panel += 1
+    tk.Label(presets_panel, text="Ny").grid(row=row_presets_panel, column=2, pady=2)
+    ny_2d_textbox = tk.Entry(presets_panel, width=5)
+    ny_2d_textbox.grid(row=row_presets_panel, column=3)
+    row_presets_panel += 1
+    tk.Label(presets_panel, text="dx").grid(row=row_presets_panel, column=2, pady=2)
+    dx_2d_textbox = tk.Entry(presets_panel, width=5)
+    dx_2d_textbox.grid(row=row_presets_panel, column=3)
+    row_presets_panel += 1
+    tk.Label(presets_panel, text="dy").grid(row=row_presets_panel, column=2, pady=2)
+    dy_2d_textbox = tk.Entry(presets_panel, width=5)
+    dy_2d_textbox.grid(row=row_presets_panel, column=3)
+    row_presets_panel += 1
+    tk.Label(presets_panel, text="x0").grid(row=row_presets_panel, column=2, pady=2)
+    x0_2d_textbox = tk.Entry(presets_panel, width=5)
+    x0_2d_textbox.grid(row=row_presets_panel, column=3)
+    row_presets_panel += 1
+    tk.Label(presets_panel, text="y0").grid(row=row_presets_panel, column=2, pady=2)
+    y0_2d_textbox = tk.Entry(presets_panel, width=5)
+    y0_2d_textbox.grid(row=row_presets_panel, column=3)
+    row_presets_panel += 1
+    tk.Label(presets_panel, text="\u03B1").grid(row=row_presets_panel, column=2, pady=2)
+    angle_2d_textbox = tk.Entry(presets_panel, width=5)
+    angle_2d_textbox.grid(row=row_presets_panel, column=3)
+    row_presets_panel += 1
+
     # Saving options
+    row+=1
     ttk.Separator(control_panel_utilities, orient=HORIZONTAL).grid(row=row, column=0, ipadx=150, pady=10, columnspan=3)
     row += 1
     tk.Label(control_panel_utilities, text="Saving options").grid(row=row, column=0, sticky="nsew", columnspan=3)
@@ -381,6 +540,7 @@ def initialize_control_panel():
     r_textbox.bind("<Return>", controller.update_r_from_tb)
     theta_textbox.bind("<Return>", controller.update_theta_from_tb)
     k_textbox.bind("<Return>", controller.update_k_from_tb)
+    lambda_textbox.bind("<Return>", controller.update_lambda_from_tb)
     rc_textbox.bind("<Return>", controller.update_rc_from_tb)
     pow_scale_textbox.bind("<Return>", controller.update_pow_arg_from_tb)
     step_scale_textbox.bind("<Return>", controller.update_step_arg_from_tb)
