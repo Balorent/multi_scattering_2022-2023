@@ -32,10 +32,7 @@ k = 10                                      # Wave number [1/m]
 # Scattering model parameter #
 invFmax = 1j / 4                            # inverse of the scattering amplitude F(k)
 
-# Matrices and vectors used in the computation #
-M = np.zeros((N, N), dtype=complex)         # Matrix M(k) from equation (3)
-invM = np.zeros((N, N), dtype=complex)      # inverse of the matrix M
-vecPhi = np.zeros(N, dtype=complex)         # vector phi from equation (3)
+# vector a #
 a = np.zeros(N, dtype=complex)              # vector a from equation (3)
 
 
@@ -73,8 +70,8 @@ def initialize_scatterers():
     """
     for i in range(N):
         xi = random.random() * 2*radiusBall - radiusBall
-        yMax = radiusBall * np.sin(np.arccos(xi/radiusBall))
-        yi = random.random() * 2*yMax - yMax
+        y_max = radiusBall * np.sin(np.arccos(xi/radiusBall))
+        yi = random.random() * 2*y_max - y_max
         coordinates[i] = [xi, yi]
 
 
@@ -85,6 +82,8 @@ def compute_a():
     of equations (3).
     """
     global a
+    M = np.zeros((N, N), dtype=complex)  # Matrix M(k) from equation (3)
+    vecPhi = np.zeros(N, dtype=complex)  # vector phi from equation (3)
     for i in range(N):
         if view.wave_type.get():
             vecPhi[i] = phi_sph(coordinates[i][0], coordinates[i][1], k)
