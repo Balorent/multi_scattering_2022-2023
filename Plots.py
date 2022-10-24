@@ -57,6 +57,7 @@ class PlotXY:
         # Create the min and max bounds for the color legend
         self.scale_min = None
         self.scale_max = None
+        self.cmap_type = 'YlOrRd'
 
         # Create the circles representing the scatterers
         self.coordinates = None
@@ -94,7 +95,7 @@ class PlotXY:
         # Display the pcolormesh
         self.pcm = self.ax.pcolormesh(self.x_mesh, self.y_mesh, self.psi,
                                       norm=colors.LogNorm(vmin=self.scale_min, vmax=self.scale_max),
-                                      cmap='YlOrRd',
+                                      cmap=self.cmap_type,
                                       shading='auto')
 
         # Display the scatterers
@@ -107,7 +108,10 @@ class PlotXY:
         self.contour = patches.Circle((0, 0), radius=view.rc_value.get(), color='black', linewidth=0.3, fill=None)
         self.ax.add_patch(self.contour)
 
-    def update_plot(self, update_scatterers, update_res_bound, scattering_amp_bool, new_x=0, new_y=0):
+    def update_plot(self, update_scatterers, update_res_bound, new_x=0, new_y=0):
+        scattering_amp_bool = controller.scattering_amp_bool
+        phase_view_bool = controller.phase_view_bool
+
         # Update scatterers position if necessary
         if update_scatterers >= 0:
             self.scatterer_list[update_scatterers].center = new_x, new_y
@@ -133,16 +137,30 @@ class PlotXY:
             self.psi += a[i] * \
                  maths.G(k, np.sqrt((self.x_mesh - self.coordinates[i][0]) * (self.x_mesh - self.coordinates[i][0]) +
                                     (self.y_mesh - self.coordinates[i][1]) * (self.y_mesh - self.coordinates[i][1])))
-        self.psi = (np.abs(self.psi)) ** 2
-        self.psi /= (self.dx * self.dy * sum(sum(self.psi)))  # Normalization such that the integral(|psi|²) = 1
+        if not phase_view_bool:
+            self.psi = (np.abs(self.psi)) ** 2
+            self.psi /= (self.dx * self.dy * sum(sum(self.psi)))  # Normalization such that the integral(|psi|²) = 1
+            if self.cmap_type != 'YlOrRd':
+                self.pcm.set(norm=colors.LogNorm(vmin=self.scale_min, vmax=self.scale_max), cmap='YlOrRd')
+                self.cmap_type = 'YlOrRd'
+        else:
+            self.psi = np.angle(self.psi)
+            if self.cmap_type != 'twilight':
+                self.pcm.set(norm=colors.Normalize(vmin=-math.pi, vmax=math.pi), cmap='twilight')
+                self.cmap_type = 'twilight'
 
         if not math.isnan(self.psi[0][0]):
             if not update_res_bound:
                 self.pcm.set_array(self.psi)
-            else:
+            elif not phase_view_bool:
                 self.pcm = self.ax.pcolormesh(self.x_mesh, self.y_mesh, self.psi,
                                               norm=colors.LogNorm(vmin=self.scale_min, vmax=self.scale_max),
                                               cmap='YlOrRd',
+                                              shading='auto')
+            else:
+                self.pcm = self.ax.pcolormesh(self.x_mesh, self.y_mesh, self.psi,
+                                              norm=colors.Normalize(vmin=-math.pi, vmax=math.pi),
+                                              cmap='twilight',
                                               shading='auto')
             view.plot_canvas.restore_region(self.background)
             self.ax.draw_artist(self.pcm)
@@ -231,7 +249,6 @@ class PlotDetM:
         for i in range(self.im_k_res):
             self.det_m[i] = np.abs(maths.det_m(re_k, self.im_k_mesh[i]))
         if not math.isnan(self.det_m[0]):
-            print(2 * self.det_m[-1])
             self.ax.set_ylim(0, 2*self.det_m[-1])
             self.line[0].set_data(self.im_k_mesh, self.det_m)
             view.plot_canvas.restore_region(self.background)
@@ -290,13 +307,22 @@ class PlotTheta:
         if not math.isnan(self.psi[0]):
             self.line = self.ax.plot(self.theta_contour, self.psi, color='blue', linewidth=1)
             self.ax.add_line(self.line[0])
+        controller.update_textbox(view.entropy_textbox, 1)
+        controller.update_textbox(view.stddev_textbox, 1)
+
+        self.psi /= sum(self.psi)
+        entropy = -sum(self.psi * np.log(self.psi))
+        mean = sum(self.theta_contour * self.psi)
+        stddev = np.sqrt(self.theta_res*sum((self.theta_contour*self.psi)**2) - mean**2)
+        controller.update_textbox(view.entropy_textbox, round(entropy, 5))
+        controller.update_textbox(view.stddev_textbox, round(stddev, 5))
 
     def update_plot(self):
-        view.plot_canvas.restore_region(self.background)
+        phase_view_bool = controller.phase_view_bool
         k = maths.k
         a = maths.a
         coordinates = maths.coordinates
-        if view.wave_type:
+        if view.wave_type.get():
             self.psi = maths.phi_sph(self.x_contour, self.y_contour, k)
         else:
             self.psi = maths.phi_pl(self.x_contour, k)
@@ -304,13 +330,30 @@ class PlotTheta:
             dx = self.x_contour - coordinates[i][0]
             dy = self.y_contour - coordinates[i][1]
             self.psi += a[i] * maths.G(k, np.sqrt(dx * dx + dy * dy))
-        self.psi = (np.abs(self.psi)) ** 2
-        self.psi /= max(self.psi)
+        if not phase_view_bool:
+            self.psi = (np.abs(self.psi)) ** 2
+            self.psi /= max(self.psi)
+            if self.ax.get_ylim() != (0, 1):
+                self.ax.set_ylim(0, 1)
+                view.plot_canvas.draw()
+        else:
+            self.psi = np.angle(self.psi)
+            if self.ax.get_ylim() == (0, 1):
+                self.ax.set_ylim(-math.pi, math.pi)
+                view.plot_canvas.draw()
         if not math.isnan(self.psi[0]):
+            view.plot_canvas.restore_region(self.background)
             self.line[0].set_data(self.theta_contour, self.psi)
             view.plot_canvas.restore_region(self.background)
             self.ax.draw_artist(self.line[0])
             view.plot_canvas.blit(self.ax.bbox)
+
+        self.psi /= sum(self.psi)
+        entropy = -sum(self.psi * np.log(self.psi))
+        mean = sum(self.theta_contour*self.psi)
+        stddev = np.sqrt(self.theta_res*sum((self.theta_contour*self.psi)**2) - mean**2)
+        controller.update_textbox(view.entropy_textbox, round(entropy, 5))
+        controller.update_textbox(view.stddev_textbox, round(stddev, 5))
 
     def update_mesh(self, update_res):
         if update_res:
