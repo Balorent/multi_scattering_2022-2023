@@ -9,9 +9,10 @@ import matplotlib
 matplotlib.use('TkAgg')
 import tkinter as tk
 import matplotlib.colors as colors
+import matplotlib.patches as patches
 import numpy as np
 import math
-import time
+import random
 
 import view
 import maths
@@ -22,13 +23,13 @@ if __name__ == "__main__":
     exit()
 
 # Variables --------------------------------------------------------------
-N = maths.N
 coordinates = maths.coordinates
 in_range = -1
 selected_scatterer = -1
 
 scattering_amp_bool = 0
 hide_scatterer_bool = 0
+phase_view_bool = 0
 
 
 # Events handlers --------------------------------------------------------
@@ -37,21 +38,23 @@ def button_press_callback(event):
     global in_range, selected_scatterer
     if event.inaxes == view.xy_plot.ax:
         test = 0
-        for i in range(N):
+        for i in range(maths.N):
             x_i, y_i = event.xdata, event.ydata
-            if (event.xdata - coordinates[i][0]) ** 2 + (event.ydata - coordinates[i][1]) ** 2 \
-                    <= view.xy_plot.scatterer_list[i].radius ** 2:
+            if (x_i - coordinates[i][0]) ** 2 + (y_i - coordinates[i][1]) ** 2 \
+                <= view.xy_plot.scatterer_list[i].radius ** 2:
                 r_i, theta_i = np.sqrt(coordinates[i][0] ** 2 + coordinates[i][1] ** 2), \
                                np.arctan2(coordinates[i][1], coordinates[i][0]) + \
                                (np.arctan2(coordinates[i][1], coordinates[i][0]) < 0) * 2 * math.pi
                 in_range = i
-                view.xy_plot.scatterer_list[selected_scatterer].set(color='black')
+                if selected_scatterer < maths.N:
+                    view.xy_plot.scatterer_list[selected_scatterer].set(color='black')
                 selected_scatterer = in_range
                 view.xy_plot.scatterer_list[i].set(color='dodgerblue')
                 set_rightpanel(coordinates[i][0], coordinates[i][1], r_i, theta_i)
                 test = 1
         if not test and selected_scatterer >= 0:
-            view.xy_plot.scatterer_list[selected_scatterer].set(color='black')
+            if selected_scatterer < maths.N:
+                view.xy_plot.scatterer_list[selected_scatterer].set(color='black')
             selected_scatterer = -1
             set_rightpanel(0, 0, 0, 0)
     view.plot_canvas.draw()
@@ -70,7 +73,7 @@ def motion_notify_callback(event):
     if event.button and event.inaxes == view.xy_plot.ax and in_range >= 0:
         x_i, y_i = event.xdata, event.ydata
         r_i, theta_i = np.sqrt(x_i ** 2 + y_i ** 2), np.arctan2(y_i, x_i) + (np.arctan2(y_i, x_i) < 0) * 2 * math.pi
-        view.xy_plot.update_plot(in_range, 0, scattering_amp_bool, x_i, y_i)
+        view.xy_plot.update_plot(in_range, 0, x_i, y_i)
         view.theta_plot.update_plot()
         view.resonances_plot.update_plot()
         set_rightpanel(x_i, y_i, r_i, theta_i)
@@ -111,7 +114,7 @@ def update_x_from_tb(event):
         update_textbox(view.theta_textbox, round(new_theta, 3))
 
         # update the plots
-        view.xy_plot.update_plot(selected_scatterer, 0, scattering_amp_bool, new_x, y)
+        view.xy_plot.update_plot(selected_scatterer, 0, new_x, y)
         view.theta_plot.update_plot()
         view.resonances_plot.update_plot()
 
@@ -133,7 +136,7 @@ def update_y_from_tb(event):
         update_textbox(view.theta_textbox, round(new_theta, 3))
 
         # update the plots
-        view.xy_plot.update_plot(selected_scatterer, 0, scattering_amp_bool, x, new_y)
+        view.xy_plot.update_plot(selected_scatterer, 0, x, new_y)
         view.theta_plot.update_plot()
         view.resonances_plot.update_plot()
 
@@ -155,7 +158,7 @@ def update_r_from_tb(event):
         update_textbox(view.y_textbox, round(new_y, 3))
 
         # update the plots
-        view.xy_plot.update_plot(selected_scatterer, 0, scattering_amp_bool, new_x, new_y)
+        view.xy_plot.update_plot(selected_scatterer, 0, new_x, new_y)
         view.theta_plot.update_plot()
         view.resonances_plot.update_plot()
 
@@ -177,18 +180,33 @@ def update_theta_from_tb(event):
         update_textbox(view.y_textbox, round(new_y, 3))
 
         # update the plots
-        view.xy_plot.update_plot(selected_scatterer, 0, scattering_amp_bool, new_x, new_y)
+        view.xy_plot.update_plot(selected_scatterer, 0, new_x, new_y)
         view.theta_plot.update_plot()
         view.resonances_plot.update_plot()
 
 
 def update_k_from_tb(event):
-    new_k = float(view.k_textbox.get())
-    view.k_value.set(new_k)
-    maths.k = new_k
-    view.xy_plot.update_plot(-1, 0, scattering_amp_bool)
-    view.theta_plot.update_plot()
-    view.resonances_plot.update_plot()
+    if float(view.k_textbox.get()) != 0:
+        new_k, new_lambda = float(view.k_textbox.get()), 2*math.pi/float(view.k_textbox.get())
+        view.k_value.set(new_k)
+        view.lambda_value.set(new_lambda)
+        maths.k = new_k
+        update_textbox(view.lambda_textbox, round(new_lambda, 3))
+        view.xy_plot.update_plot(-1, 0)
+        view.theta_plot.update_plot()
+        view.resonances_plot.update_plot()
+
+
+def update_lambda_from_tb(event):
+    if float(view.lambda_textbox.get()) != 0:
+        new_k, new_lambda = 2 * math.pi / float(view.lambda_textbox.get()), float(view.lambda_textbox.get())
+        view.k_value.set(new_k)
+        view.lambda_value.set(new_lambda)
+        maths.k = new_k
+        update_textbox(view.k_textbox, round(new_k, 3))
+        view.xy_plot.update_plot(-1, 0)
+        view.theta_plot.update_plot()
+        view.resonances_plot.update_plot()
 
 
 def update_rc_from_tb(event):
@@ -197,7 +215,7 @@ def update_rc_from_tb(event):
     view.xy_plot.contour.radius = new_rc
     view.theta_plot.update_mesh(0)
     view.theta_plot.update_plot()
-    view.xy_plot.update_plot(-1, 0, scattering_amp_bool)
+    view.xy_plot.update_plot(-1, 0)
 
 
 def update_pow_arg_from_tb(event):
@@ -244,7 +262,7 @@ def update_x_from_slider(value):
         update_textbox(view.theta_textbox, round(new_theta, 3))
 
         # update the plot
-        view.xy_plot.update_plot(selected_scatterer, 0, scattering_amp_bool, new_x, y)
+        view.xy_plot.update_plot(selected_scatterer, 0, new_x, y)
         view.theta_plot.update_plot()
         view.resonances_plot.update_plot()
 
@@ -266,7 +284,7 @@ def update_y_from_slider(value):
         update_textbox(view.theta_textbox, round(new_theta, 3))
 
         # update the plot
-        view.xy_plot.update_plot(selected_scatterer, 0, scattering_amp_bool, x, new_y)
+        view.xy_plot.update_plot(selected_scatterer, 0, x, new_y)
         view.theta_plot.update_plot()
         view.resonances_plot.update_plot()
 
@@ -288,7 +306,7 @@ def update_r_from_slider(value):
         update_textbox(view.y_textbox, round(new_y, 3))
 
         # update the plot
-        view.xy_plot.update_plot(selected_scatterer, 0, scattering_amp_bool, new_x, new_y)
+        view.xy_plot.update_plot(selected_scatterer, 0, new_x, new_y)
         view.theta_plot.update_plot()
         view.resonances_plot.update_plot()
 
@@ -310,18 +328,33 @@ def update_theta_from_slider(value):
         update_textbox(view.y_textbox, round(new_y, 3))
 
         # update the plot
-        view.xy_plot.update_plot(selected_scatterer, 0, scattering_amp_bool, new_x, new_y)
+        view.xy_plot.update_plot(selected_scatterer, 0, new_x, new_y)
         view.theta_plot.update_plot()
         view.resonances_plot.update_plot()
 
 
 def update_k_from_slider(value):
-    new_k = float(value)
-    maths.k = new_k
-    update_textbox(view.k_textbox, new_k)
-    view.xy_plot.update_plot(-1, 0, scattering_amp_bool)
-    view.theta_plot.update_plot()
-    view.resonances_plot.update_plot()
+    if float(value) != 0:
+        new_k, new_lambda = float(value), 2*math.pi/float(value)
+        maths.k = new_k
+        update_textbox(view.k_textbox, new_k)
+        update_textbox(view.lambda_textbox, round(new_lambda, 3))
+        view.lambda_value.set(new_lambda)
+        view.xy_plot.update_plot(-1, 0, )
+        view.theta_plot.update_plot()
+        view.resonances_plot.update_plot()
+
+
+def update_lambda_from_slider(value):
+    if float(value) != 0:
+        new_k, new_lambda = 2 * math.pi / float(value), float(value)
+        maths.k = new_k
+        update_textbox(view.k_textbox, round(new_k, 3))
+        update_textbox(view.lambda_textbox, new_lambda)
+        view.k_value.set(new_k)
+        view.xy_plot.update_plot(-1, 0, )
+        view.theta_plot.update_plot()
+        view.resonances_plot.update_plot()
 
 
 def update_step_arg_from_slider(value):
@@ -337,19 +370,63 @@ def update_rc_from_slider(value):
     view.xy_plot.contour.radius = new_rc
     view.theta_plot.update_mesh(0)
     view.theta_plot.update_plot()
-    view.xy_plot.update_plot(-1, 0, scattering_amp_bool)
+    view.xy_plot.update_plot(-1, 0)
 
 
 # Buttons ----------------------------------------------------------------
+def add_scatterer():
+    maths.N += 1
+    maths.a = np.zeros(maths.N, dtype=complex)
+
+    # Add the coordinates to maths.coordinates
+    xi = random.random() * 2 * maths.radiusBall - maths.radiusBall
+    y_max = maths.radiusBall * np.sin(np.arccos(xi / maths.radiusBall))
+    yi = random.random() * 2 * y_max - y_max
+    maths.coordinates.append([xi, yi])
+
+    # Add the circle to the ax of xy_plot
+    circle = patches.Circle((xi, yi), radius=0.1, color='black')
+    view.xy_plot.scatterer_list.append(circle)
+    view.xy_plot.ax.add_patch(circle)
+    view.xy_plot.update_plot(-1, 0)
+    view.theta_plot.update_plot()
+    view.resonances_plot.update_plot()
+
+
+def remove_scatterer():
+    global selected_scatterer
+    if selected_scatterer >= 0:
+        maths.N -= 1
+        maths.a = np.zeros(maths.N, dtype=complex)
+        maths.coordinates.remove(maths.coordinates[selected_scatterer])
+        view.xy_plot.scatterer_list[selected_scatterer].remove()
+        view.xy_plot.scatterer_list.remove(view.xy_plot.scatterer_list[selected_scatterer])
+        view.xy_plot.update_plot(-1, 0)
+        view.theta_plot.update_plot()
+        view.resonances_plot.update_plot()
+
+
+def remove_all():
+    for i in reversed(range(maths.N)):
+        maths.N = 0
+        maths.a = np.zeros(maths.N, dtype=complex)
+        maths.coordinates.remove(maths.coordinates[i])
+        view.xy_plot.scatterer_list[i].remove()
+        view.xy_plot.scatterer_list.remove(view.xy_plot.scatterer_list[i])
+        view.xy_plot.update_plot(-1, 0)
+        view.theta_plot.update_plot()
+        view.resonances_plot.update_plot()
+
+
 def plane_wave():
     view.wave_type.set(0)
-    view.xy_plot.update_plot(-1, 0, scattering_amp_bool)
+    view.xy_plot.update_plot(-1, 0)
     view.theta_plot.update_plot()
 
 
 def spherical_wave():
     view.wave_type.set(1)
-    view.xy_plot.update_plot(-1, 0, scattering_amp_bool)
+    view.xy_plot.update_plot(-1, 0)
     view.theta_plot.update_plot()
 
 
@@ -410,6 +487,13 @@ def hide_scatterers():
     view.plot_canvas.draw()
 
 
+def phase_view():
+    global phase_view_bool
+    phase_view_bool = not phase_view_bool
+    view.xy_plot.update_plot(-1, 0)
+    view.theta_plot.update_plot()
+
+
 def apply_res_bounds():
     view.x_res_value = int(view.x_res_textbox.get())
     view.x_min_value = float(view.x_min_textbox.get())
@@ -427,7 +511,7 @@ def apply_res_bounds():
     view.theta_plot.update_mesh(view.theta_res_value)
     view.resonances_plot.update_mesh(view.im_k_res_value, view.im_k_min_value, view.im_k_max_value)
 
-    view.xy_plot.update_plot(-1, 1, scattering_amp_bool)
+    view.xy_plot.update_plot(-1, 1)
     if view.scale_type.get() == 0:
         view.xy_plot.pcm.set_norm(colors.LogNorm(vmin=view.xy_plot.scale_min, vmax=view.xy_plot.scale_max))
     elif view.scale_type.get() == 1:
@@ -439,6 +523,61 @@ def apply_res_bounds():
     view.theta_plot.update_plot()
     view.resonances_plot.update_plot()
     view.plot_canvas.draw()
+
+
+def lattice_1d():
+    N = int(view.n_1d_textbox.get())
+    d = float(view.d_1d_textbox.get())
+    angle = float(view.angle_1d_textbox.get())
+    x0 = view.x0_1d_textbox.get()
+    y0 = view.y0_1d_textbox.get()
+    r0 = view.r0_1d_textbox.get()
+    theta0 = view.theta0_1d_textbox.get()
+    if ((x0 == "") and (y0 == "")) or ((r0 == "") and (theta0 == "")):
+        if (x0 == "") and (y0 == ""):
+            x0 = float(r0) * np.cos(float(theta0))
+            y0 = float(r0) * np.sin(float(theta0))
+        elif (r0 == "") and (theta0 == ""):
+            x0 = float(x0)
+            y0 = float(y0)
+        maths.N += N
+        maths.a = np.zeros(maths.N, dtype=complex)
+        for i in range(N):
+            xi = x0 + i*d*np.cos(angle)
+            yi = y0 + i*d*np.sin(angle)
+            maths.coordinates.append([xi, yi])
+            circle = patches.Circle((xi, yi), radius=0.1, color='black')
+            view.xy_plot.scatterer_list.append(circle)
+            view.xy_plot.ax.add_patch(circle)
+        view.xy_plot.update_plot(-1, 0)
+        view.theta_plot.update_plot()
+        view.resonances_plot.update_plot()
+    else:
+        print("Wrong position for the 1D lattice (either provide valid x0 and y0, or valid r0 and theta0, not more "
+              "neither less)")
+
+
+def lattice_2d():
+    Nx = int(view.nx_2d_textbox.get())
+    Ny = int(view.ny_2d_textbox.get())
+    dx = float(view.dx_2d_textbox.get())
+    dy = float(view.dy_2d_textbox.get())
+    x0 = float(view.x0_2d_textbox.get())
+    y0 = float(view.y0_2d_textbox.get())
+    angle = float(view.angle_2d_textbox.get())
+    maths.N += Nx*Ny
+    maths.a = np.zeros(maths.N, dtype=complex)
+    for i in range(Ny):
+        for j in range(Nx):
+            xi = x0 + j * dx * np.cos(angle) - i * dy * np.sin(angle)
+            yi = y0 + j * dx * np.sin(angle) + i * dy * np.cos(angle)
+            maths.coordinates.append([xi, yi])
+            circle = patches.Circle((xi, yi), radius=0.1, color='black')
+            view.xy_plot.scatterer_list.append(circle)
+            view.xy_plot.ax.add_patch(circle)
+    view.xy_plot.update_plot(-1, 0)
+    view.theta_plot.update_plot()
+    view.resonances_plot.update_plot()
 
 
 def save():
