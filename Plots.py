@@ -1,7 +1,7 @@
 #                                 PLOTS.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    20 october 2022
+# Last edition :    27 october 2022
 # ------------------------------------------------------------------------
 
 # Imports ----------------------------------------------------------------
@@ -313,7 +313,7 @@ class PlotTheta:
         self.psi /= sum(self.psi)
         entropy = -sum(self.psi * np.log(self.psi))
         mean = sum(self.theta_contour * self.psi)
-        stddev = np.sqrt(self.theta_res*sum((self.theta_contour*self.psi)**2) - mean**2)
+        stddev = np.sqrt(sum((self.theta_contour - mean) ** 2 * self.psi))
         controller.update_textbox(view.entropy_textbox, round(entropy, 5))
         controller.update_textbox(view.stddev_textbox, round(stddev, 5))
 
@@ -350,8 +350,12 @@ class PlotTheta:
 
         self.psi /= sum(self.psi)
         entropy = -sum(self.psi * np.log(self.psi))
-        mean = sum(self.theta_contour*self.psi)
-        stddev = np.sqrt(self.theta_res*sum((self.theta_contour*self.psi)**2) - mean**2)
+        polar_dots = self.psi * np.exp(1j * self.theta_contour)
+        mean = np.angle(sum(polar_dots))
+        theta_contour_2 = self.theta_contour - (mean + 2*math.pi*(mean<0)) \
+                          - [2*math.pi*(0 < mean < math.pi and 0 < self.theta_contour[i] > mean + math.pi) for i in range(len(self.theta_contour))] \
+                          + [2*math.pi*(math.pi < mean+2*math.pi < 2*math.pi and 0 <= self.theta_contour[i] < mean + math.pi) for i in range(len(self.theta_contour))]
+        stddev = np.sqrt(sum(theta_contour_2**2 * self.psi))
         controller.update_textbox(view.entropy_textbox, round(entropy, 5))
         controller.update_textbox(view.stddev_textbox, round(stddev, 5))
 
@@ -363,3 +367,6 @@ class PlotTheta:
         self.dtheta = abs(self.theta_contour[1] - self.theta_contour[0])
         self.theta_res = view.theta_res_value
         self.psi = np.zeros(update_res)
+
+# mean = sum(self.theta_contour*self.psi)
+# stddev = np.sqrt(sum((self.theta_contour - mean)**2 * self.psi))
