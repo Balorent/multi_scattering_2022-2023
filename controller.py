@@ -1,7 +1,7 @@
 #                             CONTROLLER.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    20 october 2022
+# Last edition :    27 october 2022
 # ------------------------------------------------------------------------
 
 # Imports ----------------------------------------------------------------
@@ -413,9 +413,9 @@ def remove_all():
         maths.coordinates.remove(maths.coordinates[i])
         view.xy_plot.scatterer_list[i].remove()
         view.xy_plot.scatterer_list.remove(view.xy_plot.scatterer_list[i])
-        view.xy_plot.update_plot(-1, 0)
-        view.theta_plot.update_plot()
-        view.resonances_plot.update_plot()
+    view.xy_plot.update_plot(-1, 0)
+    view.theta_plot.update_plot()
+    view.resonances_plot.update_plot()
 
 
 def plane_wave():
