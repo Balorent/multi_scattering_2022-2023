@@ -1,7 +1,7 @@
 #                                 MAIN.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    27 october 2022
+# Last edition :    4 November 2022
 # Description  :    This program aims at simulating the wave function of a
 #                   spherical wave in a cloud chamber, and the effect of the
 #                   scattering of this wave by a relatively small number of
