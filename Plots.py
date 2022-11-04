@@ -1,7 +1,7 @@
 #                                 PLOTS.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    27 october 2022
+# Last edition :    4 November 2022
 # ------------------------------------------------------------------------
 
 # Imports ----------------------------------------------------------------
@@ -11,9 +11,6 @@ import numpy as np
 import math
 import matplotlib.colors as colors
 import matplotlib.patches as patches
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import tkinter as tk
 
 import view
 import maths
@@ -137,6 +134,7 @@ class PlotXY:
             self.psi += a[i] * \
                  maths.G(k, np.sqrt((self.x_mesh - self.coordinates[i][0]) * (self.x_mesh - self.coordinates[i][0]) +
                                     (self.y_mesh - self.coordinates[i][1]) * (self.y_mesh - self.coordinates[i][1])))
+
         if not phase_view_bool:
             self.psi = (np.abs(self.psi)) ** 2
             self.psi /= (self.dx * self.dy * sum(sum(self.psi)))  # Normalization such that the integral(|psi|²) = 1
