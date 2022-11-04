@@ -1,7 +1,7 @@
 #                                 MATHS.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    27 october 2022
+# Last edition :    4 November 2022
 # ------------------------------------------------------------------------
 
 
@@ -43,8 +43,7 @@ def phi_sph(x, y, k):
         exp(ikr)/r
     at the point r = (x, y).
     """
-    r = np.sqrt(x*x + y*y)
-    return np.exp(1j*k*r)/r
+    return G(k, np.sqrt(x*x + y*y))
 
 
 def phi_pl(x, k):
