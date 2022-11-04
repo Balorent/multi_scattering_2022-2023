@@ -1,7 +1,7 @@
 #                             CONTROLLER.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    27 october 2022
+# Last edition :    4 November 2022
 # ------------------------------------------------------------------------
 
 # Imports ----------------------------------------------------------------
@@ -191,7 +191,7 @@ def update_k_from_tb(event):
         view.k_value.set(new_k)
         view.lambda_value.set(new_lambda)
         maths.k = new_k
-        update_textbox(view.lambda_textbox, round(new_lambda, 3))
+        update_textbox(view.lambda_textbox, round(new_lambda, 7))
         view.xy_plot.update_plot(-1, 0)
         view.theta_plot.update_plot()
         view.resonances_plot.update_plot()
@@ -338,7 +338,7 @@ def update_k_from_slider(value):
         new_k, new_lambda = float(value), 2*math.pi/float(value)
         maths.k = new_k
         update_textbox(view.k_textbox, new_k)
-        update_textbox(view.lambda_textbox, round(new_lambda, 3))
+        update_textbox(view.lambda_textbox, round(new_lambda, 7))
         view.lambda_value.set(new_lambda)
         view.xy_plot.update_plot(-1, 0, )
         view.theta_plot.update_plot()
