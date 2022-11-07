@@ -1,7 +1,7 @@
 #                                 PLOTS.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    4 November 2022
+# Last edition :    7 November 2022
 # ------------------------------------------------------------------------
 
 # Imports ----------------------------------------------------------------
@@ -365,6 +365,3 @@ class PlotTheta:
         self.dtheta = abs(self.theta_contour[1] - self.theta_contour[0])
         self.theta_res = view.theta_res_value
         self.psi = np.zeros(update_res)
-
-# mean = sum(self.theta_contour*self.psi)
-# stddev = np.sqrt(sum((self.theta_contour - mean)**2 * self.psi))
