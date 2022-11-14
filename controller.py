@@ -1,7 +1,7 @@
 #                             CONTROLLER.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    7 November 2022
+# Last edition :    13 November 2022
 # ------------------------------------------------------------------------
 
 # Imports ----------------------------------------------------------------
@@ -29,7 +29,6 @@ selected_scatterer = -1
 
 scattering_amp_bool = 0
 hide_scatterer_bool = 0
-phase_view_bool = 0
 
 
 # Events handlers --------------------------------------------------------
@@ -57,7 +56,10 @@ def button_press_callback(event):
                 view.xy_plot.scatterer_list[selected_scatterer].set(color='black')
             selected_scatterer = -1
             set_rightpanel(0, 0, 0, 0)
+    print("CCC")
+    #view.plot_canvas.get_tk_widget().delete("all")
     view.plot_canvas.draw()
+    print("DDD\n\n\n\n")
 
 
 def button_release_callback(event):
@@ -438,29 +440,21 @@ def scale_auto_refresh():
 
 def refresh_scale():
     scale_min, scale_max = view.xy_plot.scale_min, view.xy_plot.scale_max
-    if view.scale_type.get() == 0:
-        view.xy_plot.pcm.set_norm(colors.LogNorm(vmin=scale_min, vmax=scale_max))
-    elif view.scale_type.get() == 1:
-        view.xy_plot.pcm.set_norm(colors.PowerNorm(gamma=view.pow_scale_value, vmin=scale_min, vmax=scale_max))
-    elif view.scale_type.get() == 2:
-        view.xy_plot.pcm.set_norm(colors.BoundaryNorm(boundaries=[scale_min, float(view.step_scale_textbox.get()), scale_max], ncolors=256))
+    view.xy_plot.update_plot(-1, 1)
     update_textbox(view.scale_min_textbox, round(scale_min, 5))
     update_textbox(view.scale_max_textbox, round(scale_max, 5))
     view.plot_canvas.draw()
 
 
 def log_scale():
-    view.scale_type.set(0)
     refresh_scale()
 
 
 def pow_scale():
-    view.scale_type.set(1)
     refresh_scale()
 
 
 def step_scale():
-    view.scale_type.set(2)
     refresh_scale()
 
 
@@ -487,10 +481,18 @@ def hide_scatterers():
     view.plot_canvas.draw()
 
 
+def modulus_view():
+    view.xy_plot.update_plot(-1, 1)
+    view.theta_plot.update_plot()
+
+
 def phase_view():
-    global phase_view_bool
-    phase_view_bool = not phase_view_bool
-    view.xy_plot.update_plot(-1, 0)
+    view.xy_plot.update_plot(-1, 1)
+    view.theta_plot.update_plot()
+
+
+def complex_view():
+    view.xy_plot.update_plot(-1, 1)
     view.theta_plot.update_plot()
 
 

@@ -1,7 +1,7 @@
 #                                 MATHS.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    7 November 2022
+# Last edition :    13 November 2022
 # ------------------------------------------------------------------------
 
 
@@ -30,7 +30,7 @@ coordinates = [[0, 0] for i in range(N)]    # Coordinates of each scatterer [[x_
 k = 10                                      # Wave number [1/m]
 
 # Scattering model parameter #
-invFmax = 1j / 4                            # inverse of the scattering amplitude F(k)
+invFmax = -1j/4                              # inverse of the scattering amplitude F(k)
 
 # vector a #
 a = np.zeros(N, dtype=complex)              # vector a from equation (3)

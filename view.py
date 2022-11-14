@@ -1,7 +1,7 @@
 #                                 VIEW.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    7 November 2022
+# Last edition :    13 November 2022
 # ------------------------------------------------------------------------
 
 # Imports ----------------------------------------------------------------
@@ -88,7 +88,13 @@ entropy_textbox = None
 stddev_textbox = None
 scattering_amp_button = None
 hide_scatterers_button = None
+modulus_view_button = None
 phase_view_button = None
+complex_view_button = None
+view_type = tk.IntVar()  # 0 if modulus, 1 if phase, 2 if complex
+view_type.set(0)
+width_cv_slider = None
+center_cv_slider = None
 x_res_textbox = None
 x_res_value = 100
 x_max_textbox = None
@@ -187,12 +193,13 @@ def initialize_control_panel():
         refresh_scale_button, scale_max_textbox, scale_min_textbox, log_scale_button, pow_scale_button, \
         step_scale_button, scale_type, pow_scale_textbox, step_scale_textbox, step_scale_slider, rc_slider, \
         rc_textbox, rc_value, entropy_textbox, stddev_textbox, scattering_amp_button, hide_scatterers_button, \
-        x_res_textbox, x_res_value, x_max_textbox, x_max_value, x_min_textbox, x_min_value, y_res_textbox, \
-        y_res_value, y_max_textbox, y_max_value, y_min_textbox, y_min_value, theta_res_textbox, theta_res_value, \
-        apply_res_bounds_button, im_k_res_textbox, im_k_max_textbox, im_k_min_textbox, lattice_1d_button, \
-        n_1d_textbox, d_1d_textbox, x0_1d_textbox, y0_1d_textbox, r0_1d_textbox, theta0_1d_textbox, angle_1d_textbox, \
-        lattice_2d_button, nx_2d_textbox, ny_2d_textbox, dx_2d_textbox, dy_2d_textbox, x0_2d_textbox, y0_2d_textbox, \
-        angle_2d_textbox, save_button, xy_plot, theta_plot, resonances_plot
+        modulus_view_button, phase_view_button, complex_view_button, x_res_textbox, x_res_value, x_max_textbox, \
+        x_max_value, x_min_textbox, x_min_value, y_res_textbox, y_res_value, y_max_textbox, y_max_value, \
+        y_min_textbox, y_min_value, theta_res_textbox, theta_res_value, apply_res_bounds_button, im_k_res_textbox, \
+        im_k_max_textbox, im_k_min_textbox, lattice_1d_button, n_1d_textbox, d_1d_textbox, x0_1d_textbox, \
+        y0_1d_textbox, r0_1d_textbox, theta0_1d_textbox, angle_1d_textbox,  lattice_2d_button, nx_2d_textbox, \
+        ny_2d_textbox, dx_2d_textbox, dy_2d_textbox, x0_2d_textbox, y0_2d_textbox, angle_2d_textbox, save_button, \
+        xy_plot, theta_plot, resonances_plot
 
     control_panel.pack(side=tk.RIGHT, fill=BOTH, expand=1)
     control_canvas = tk.Canvas(control_panel, width=300)
@@ -392,9 +399,18 @@ def initialize_control_panel():
     hide_scatterers_button.grid(row=row, column=0, sticky=tk.W)
     row += 1
 
-    phase_view_button = tk.Checkbutton(control_panel_utilities, text="Phase view",
-                                            command=controller.phase_view)
+    # modulus_view_button, phase_view_button, complex_view_button
+    modulus_view_button = tk.Radiobutton(control_panel_utilities, text="Square modulus view", variable=view_type,
+                                         value=0, command=controller.modulus_view)
+    phase_view_button = tk.Radiobutton(control_panel_utilities, text="Phase view", variable=view_type,
+                                       value=1, command=controller.phase_view)
+    complex_view_button = tk.Radiobutton(control_panel_utilities, text="Complex view", variable=view_type,
+                                       value=2, command=controller.complex_view)
+    modulus_view_button.grid(row=row, column=0, sticky=tk.W)
+    row += 1
     phase_view_button.grid(row=row, column=0, sticky=tk.W)
+    row += 1
+    complex_view_button.grid(row=row, column=0, sticky=tk.W)
     row += 1
 
     res_bound_panel = tk.Frame(control_panel_utilities)
