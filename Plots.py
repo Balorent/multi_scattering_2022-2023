@@ -1,7 +1,7 @@
 #                                 PLOTS.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    7 November 2022
+# Last edition :    13 November 2022
 # ------------------------------------------------------------------------
 
 # Imports ----------------------------------------------------------------
@@ -11,10 +11,12 @@ import numpy as np
 import math
 import matplotlib.colors as colors
 import matplotlib.patches as patches
+from matplotlib.colors import hsv_to_rgb
 
 import view
 import maths
 import controller
+import complexTools
 
 # Start ------------------------------------------------------------------
 if __name__ == "__main__":
@@ -90,10 +92,10 @@ class PlotXY:
         controller.update_textbox(view.scale_max_textbox, round(self.scale_max, 5))
 
         # Display the pcolormesh
-        self.pcm = self.ax.pcolormesh(self.x_mesh, self.y_mesh, self.psi,
-                                      norm=colors.LogNorm(vmin=self.scale_min, vmax=self.scale_max),
-                                      cmap=self.cmap_type,
-                                      shading='auto')
+        self.pcm = self.ax.imshow(self.psi, norm=colors.LogNorm(vmin=self.scale_min, vmax=self.scale_max),
+                                  cmap=self.cmap_type,
+                                  origin="lower",
+                                  extent=[self.x_min, self.x_max, self.y_min, self.y_max])
 
         # Display the scatterers
         for i in range(maths.N):
@@ -107,7 +109,7 @@ class PlotXY:
 
     def update_plot(self, update_scatterers, update_res_bound, new_x=0, new_y=0):
         scattering_amp_bool = controller.scattering_amp_bool
-        phase_view_bool = controller.phase_view_bool
+        view_type = view.view_type
 
         # Update scatterers position if necessary
         if update_scatterers >= 0:
@@ -134,32 +136,42 @@ class PlotXY:
             self.psi += a[i] * \
                  maths.G(k, np.sqrt((self.x_mesh - self.coordinates[i][0]) * (self.x_mesh - self.coordinates[i][0]) +
                                     (self.y_mesh - self.coordinates[i][1]) * (self.y_mesh - self.coordinates[i][1])))
-
-        if not phase_view_bool:
+        if view_type.get() == 0:
             self.psi = (np.abs(self.psi)) ** 2
             self.psi /= (self.dx * self.dy * sum(sum(self.psi)))  # Normalization such that the integral(|psi|²) = 1
-            if self.cmap_type != 'YlOrRd':
-                self.pcm.set(norm=colors.LogNorm(vmin=self.scale_min, vmax=self.scale_max), cmap='YlOrRd')
-                self.cmap_type = 'YlOrRd'
-        else:
+        elif view_type.get() == 1:
             self.psi = np.angle(self.psi)
-            if self.cmap_type != 'twilight':
-                self.pcm.set(norm=colors.Normalize(vmin=-math.pi, vmax=math.pi), cmap='twilight')
-                self.cmap_type = 'twilight'
+        else:
+            self.psi /= (self.dx * self.dy * sum(sum(np.abs(self.psi)**2)))  # Normalization such that the integral(|psi|²) = 1
 
-        if not math.isnan(self.psi[0][0]):
-            if not update_res_bound:
+        if not math.isnan(np.abs(self.psi[0][0])):
+            if not update_res_bound and view_type.get() != 2:
                 self.pcm.set_array(self.psi)
-            elif not phase_view_bool:
-                self.pcm = self.ax.pcolormesh(self.x_mesh, self.y_mesh, self.psi,
-                                              norm=colors.LogNorm(vmin=self.scale_min, vmax=self.scale_max),
-                                              cmap='YlOrRd',
-                                              shading='auto')
-            else:
-                self.pcm = self.ax.pcolormesh(self.x_mesh, self.y_mesh, self.psi,
-                                              norm=colors.Normalize(vmin=-math.pi, vmax=math.pi),
-                                              cmap='twilight',
-                                              shading='auto')
+            elif view_type.get() == 0:
+                self.pcm = self.ax.imshow(self.psi,
+                                          cmap='YlOrRd',
+                                          origin="lower",
+                                          extent=[self.x_min, self.x_max, self.y_min, self.y_max])
+                if view.scale_type.get() == 0:
+                    self.pcm.set_norm(colors.LogNorm(vmin=self.scale_min, vmax=self.scale_max))
+                elif view.scale_type.get() == 1:
+                    self.pcm.set_norm(
+                        colors.PowerNorm(gamma=view.pow_scale_value, vmin=self.scale_min, vmax=self.scale_max))
+                elif view.scale_type.get() == 2:
+                    self.pcm.set_norm(colors.BoundaryNorm(boundaries=[self.scale_min,
+                                                                      float(view.step_scale_textbox.get()),
+                                                                      self.scale_max],
+                                                          ncolors=256))
+
+            elif view_type.get() == 1:
+                self.pcm = self.ax.imshow(self.psi, norm=colors.Normalize(vmin=-math.pi, vmax=math.pi),
+                                          cmap='twilight',
+                                          origin="lower",
+                                          extent=[self.x_min, self.x_max, self.y_min, self.y_max])
+            elif view_type.get() == 2:
+                self.pcm = self.ax.imshow(complexTools.domaincol_c(self.psi, 0.9),
+                                          origin="lower",
+                                          extent=[self.x_min, self.x_max, self.y_min, self.y_max])
             view.plot_canvas.restore_region(self.background)
             self.ax.draw_artist(self.pcm)
             for i in range(maths.N):
@@ -228,7 +240,7 @@ class PlotDetM:
         self.ax = root.add_subplot(root_grid[1, 1])
         self.ax.set(adjustable='box')
         self.ax.set_xlim(im_k_min, im_k_max)
-        self.ax.set_xlabel('Im(k) [1/nm]')
+        self.ax.set_xlabel('$\Im(k) [1/nm]$')
         self.ax.set_ylabel('det(M(k))')
         view.plot_canvas.draw()
         self.background = view.plot_canvas.copy_from_bbox(self.ax.bbox)
@@ -316,7 +328,7 @@ class PlotTheta:
         controller.update_textbox(view.stddev_textbox, round(stddev, 5))
 
     def update_plot(self):
-        phase_view_bool = controller.phase_view_bool
+        view_type = view.view_type
         k = maths.k
         a = maths.a
         coordinates = maths.coordinates
@@ -328,16 +340,22 @@ class PlotTheta:
             dx = self.x_contour - coordinates[i][0]
             dy = self.y_contour - coordinates[i][1]
             self.psi += a[i] * maths.G(k, np.sqrt(dx * dx + dy * dy))
-        if not phase_view_bool:
+        if view_type.get() == 0:
             self.psi = (np.abs(self.psi)) ** 2
             self.psi /= max(self.psi)
             if self.ax.get_ylim() != (0, 1):
                 self.ax.set_ylim(0, 1)
                 view.plot_canvas.draw()
-        else:
+        elif view_type.get() == 1:
             self.psi = np.angle(self.psi)
             if self.ax.get_ylim() == (0, 1):
                 self.ax.set_ylim(-math.pi, math.pi)
+                view.plot_canvas.draw()
+        else:
+            self.psi = (np.abs(self.psi)) ** 2
+            self.psi /= max(self.psi)
+            if self.ax.get_ylim() != (0, 1):
+                self.ax.set_ylim(0, 1)
                 view.plot_canvas.draw()
         if not math.isnan(self.psi[0]):
             view.plot_canvas.restore_region(self.background)
