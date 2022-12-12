@@ -1,7 +1,7 @@
 #                             CONTROLLER.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    13 November 2022
+# Last edition :    12 December 2022
 # ------------------------------------------------------------------------
 
 # Imports ----------------------------------------------------------------
@@ -56,10 +56,9 @@ def button_press_callback(event):
                 view.xy_plot.scatterer_list[selected_scatterer].set(color='black')
             selected_scatterer = -1
             set_rightpanel(0, 0, 0, 0)
-    print("CCC")
-    #view.plot_canvas.get_tk_widget().delete("all")
-    view.plot_canvas.draw()
-    print("DDD\n\n\n\n")
+    view.plot_canvas_XY.draw()
+    view.plot_canvas_theta.draw()
+    view.plot_canvas_DetM.draw()
 
 
 def button_release_callback(event):
@@ -206,6 +205,16 @@ def update_lambda_from_tb(event):
         view.lambda_value.set(new_lambda)
         maths.k = new_k
         update_textbox(view.k_textbox, round(new_k, 3))
+        view.xy_plot.update_plot(-1, 0)
+        view.theta_plot.update_plot()
+        view.resonances_plot.update_plot()
+
+
+def update_alpha_from_tb(event):
+    if float(view.alpha_textbox.get()) != 0:
+        new_alpha = float(view.alpha_textbox.get())
+        view.alpha_value.set(new_alpha)
+        maths.alpha = new_alpha
         view.xy_plot.update_plot(-1, 0)
         view.theta_plot.update_plot()
         view.resonances_plot.update_plot()
@@ -359,6 +368,16 @@ def update_lambda_from_slider(value):
         view.resonances_plot.update_plot()
 
 
+def update_alpha_from_slider(value):
+    if float(value) != 0:
+        new_alpha = float(value)
+        maths.alpha = new_alpha
+        update_textbox(view.alpha_textbox, new_alpha)
+        view.xy_plot.update_plot(-1, 0, )
+        view.theta_plot.update_plot()
+        view.resonances_plot.update_plot()
+
+
 def update_step_arg_from_slider(value):
     new_arg = float(value)
     update_textbox(view.step_scale_textbox, new_arg)
@@ -432,6 +451,20 @@ def spherical_wave():
     view.theta_plot.update_plot()
 
 
+def max_model():
+    view.model_type.set(1)
+    view.xy_plot.update_plot(-1, 0)
+    view.theta_plot.update_plot()
+    view.resonances_plot.update_plot()
+
+
+def hs_model():
+    view.model_type.set(0)
+    view.xy_plot.update_plot(-1, 0)
+    view.theta_plot.update_plot()
+    view.resonances_plot.update_plot()
+
+
 def scale_auto_refresh():
     if view.xy_plot.pcm is not None:
         view.xy_plot.scale_min, view.xy_plot.scale_max = view.xy_plot.pcm.get_array().min(), view.xy_plot.pcm.get_array().max()
@@ -443,7 +476,7 @@ def refresh_scale():
     view.xy_plot.update_plot(-1, 1)
     update_textbox(view.scale_min_textbox, round(scale_min, 5))
     update_textbox(view.scale_max_textbox, round(scale_max, 5))
-    view.plot_canvas.draw()
+    view.plot_canvas_XY.draw()
 
 
 def log_scale():
@@ -467,7 +500,7 @@ def change_scattering_amp_visu():
             view.xy_plot.scatterer_list[i].radius = abs(a[i])/max(abs(a)) * (view.xy_plot.x_max - view.xy_plot.x_min)/20
         else:
             view.xy_plot.scatterer_list[i].radius = 0.1*(view.xy_plot.x_max - view.xy_plot.x_min)/20
-    view.plot_canvas.draw()
+    view.plot_canvas_XY.draw()
 
 
 def hide_scatterers():
@@ -478,7 +511,7 @@ def hide_scatterers():
             view.xy_plot.scatterer_list[i].remove()
         else:
             view.xy_plot.ax.add_patch(view.xy_plot.scatterer_list[i])
-    view.plot_canvas.draw()
+    view.plot_canvas_XY.draw()
 
 
 def modulus_view():
@@ -524,7 +557,9 @@ def apply_res_bounds():
                                                                   view.xy_plot.scale_max], ncolors=256))
     view.theta_plot.update_plot()
     view.resonances_plot.update_plot()
-    view.plot_canvas.draw()
+    view.plot_canvas_XY.draw()
+    view.plot_canvas_theta.draw()
+    view.plot_canvas_DetM.draw()
 
 
 def lattice_1d():
