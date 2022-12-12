@@ -1,7 +1,7 @@
 #                                 MATHS.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    13 November 2022
+# Last edition :    12 December 2022
 # ------------------------------------------------------------------------
 
 
@@ -27,10 +27,10 @@ radiusBall = 5                              # Radius of the ball in which the sc
 coordinates = [[0, 0] for i in range(N)]    # Coordinates of each scatterer [[x_1, y_1], [x_2, y_2], ..., [x_N, y_N]]
 
 # Incident wave parameters #
-k = 10                                      # Wave number [1/m]
+k = 1                                      # Wave number [1/m]
 
-# Scattering model parameter #
-invFmax = -1j/4                              # inverse of the scattering amplitude F(k)
+# interaction potential parameters #
+alpha = 1
 
 # vector a #
 a = np.zeros(N, dtype=complex)              # vector a from equation (3)
@@ -60,6 +60,35 @@ def G(k, r): #Green function
     This function return the value of the Green function G(k, r).
     """
     return -1/(2*math.pi) * scipy.special.kv(0, -1j*k*r)
+
+
+def SurfaceUnitSphere(d):
+    """
+    This function return the value of the surface of a unitary sphere in d dimensions
+    """
+    return
+
+
+def I(k, r):
+    """
+    This function return the value of the regularized Green function I(k, r) = -Im[G(k, r)].
+    """
+    if r != 0:
+        res = -np.imag(G(k, r))
+    else:
+        res = 1/4
+    return res
+
+
+def invF(k, alpha):
+    """
+    This function return the value of the F used in the Foldy-Lax formalism
+    """
+    if view.model_type.get() == 1:  # Maximal model
+        res = -1j/4
+    elif view.model_type.get() == 0:  # Hard-sphere model  OR  delta-like potential if k*alpha << 1
+        res = -I(k, 0) * G(k, alpha) / I(k, alpha)
+    return res
 
 
 def initialize_scatterers():
@@ -94,7 +123,7 @@ def compute_a():
                 dy = coordinates[i][1] - coordinates[j][1]
                 M[i, j] = -G(k, np.sqrt(dx**2 + dy**2))
             else:
-                M[i, i] = invFmax
+                M[i, i] = invF(k, alpha)
     invM = np.linalg.inv(M)
     a = invM.dot(vecPhi)
 
@@ -112,5 +141,5 @@ def det_m(re_k, im_k):
                 dy = coordinates[i][1] - coordinates[j][1]
                 M2[i, j] = -G(re_k + 1j*im_k, np.sqrt(dx**2 + dy**2))
             else:
-                M2[i, i] = invFmax
+                M2[i, i] = invF(k, alpha)
     return np.linalg.det(M2)
