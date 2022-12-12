@@ -1,7 +1,7 @@
 #                                 VIEW.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    13 November 2022
+# Last edition :    12 December 2022
 # ------------------------------------------------------------------------
 
 # Imports ----------------------------------------------------------------
@@ -32,9 +32,13 @@ if __name__ == "__main__":
 
 # Main panels #
 window = tk.Tk()
-plot_panel = tk.Frame(window, background="white")
-plot_canvas = None
-control_panel = tk.Frame(window)
+plot_panel_XY = tk.Frame(window, background="white")
+plot_canvas_XY = None
+plot_panel_theta = tk.Frame(window, background="white")
+plot_canvas_theta = None
+plot_panel_DetM = tk.Frame(window, background="white")
+plot_canvas_DetM = None
+control_panel = tk.Frame(window, width=2000)
 
 # Control panel widgets #
 x_slider = None
@@ -64,6 +68,14 @@ lambda_slider = None
 lambda_textbox = None
 lambda_value = tk.DoubleVar()
 lambda_value.set(2*math.pi/maths.k)
+max_model_button = None
+hs_model_button = None
+model_type = tk.IntVar()  # 0 if hard-sphere, 1 if maximal
+model_type.set(1)
+alpha_slider = None
+alpha_textbox = None
+alpha_value = tk.DoubleVar()
+alpha_value.set(1)
 refresh_scale_button = None
 scale_max_textbox = None
 scale_min_textbox = None
@@ -141,7 +153,7 @@ resonances_plot = None
 
 
 def initialise():
-    global plot_canvas, xy_plot, theta_plot, resonances_plot
+    global plot_canvas_XY, plot_canvas_theta, plot_canvas_DetM, xy_plot, theta_plot, resonances_plot
     initialize_window()
     initialize_plot_panel()
     initialize_control_panel()
@@ -151,7 +163,9 @@ def initialise():
     resonances_plot.first_plot()
 
     # Loop
-    plot_canvas.draw()
+    plot_canvas_XY.draw()
+    plot_canvas_XY.draw()
+    plot_canvas_XY.draw()
     window.mainloop()
 
 
@@ -167,42 +181,56 @@ def initialize_window():
 
 
 def initialize_plot_panel():
-    global xy_plot, theta_plot, resonances_plot, plot_canvas
+    global xy_plot, theta_plot, resonances_plot, plot_canvas_XY, plot_canvas_theta, plot_canvas_DetM
 
-    plot_panel.pack(side=tk.LEFT, fill=BOTH, expand=1)
-    plot_figure = plt.Figure(figsize=(window.winfo_screenheight()*14.6/1080, window.winfo_screenheight()*7.3/1080))
-    plot_canvas = FigureCanvasTkAgg(plot_figure, plot_panel)
-    plot_canvas.get_tk_widget().pack(side=tk.LEFT)
-    plot_grid = gridspec.GridSpec(2, 2, height_ratios=[1, 2], width_ratios=[3, 2])
+    # plot XY
+    plot_figure_XY = plt.Figure(figsize=(window.winfo_screenheight() * 8 / 1080, window.winfo_screenheight() * 8 / 1080))
+    plot_panel_XY = tk.Frame(window, background="white")
+    plot_panel_XY.grid(row=1, column=0, rowspan=2)
+    plot_canvas_XY = FigureCanvasTkAgg(plot_figure_XY, plot_panel_XY)
+    plot_canvas_XY.get_tk_widget().pack(side=tk.LEFT)
+    plot_canvas_XY.draw()
+    xy_plot = PlotXY(plot_figure_XY, 100, -10, 10, 100, -10, 10)
+    plot_figure_XY.canvas.mpl_connect('button_release_event', controller.button_release_callback)
+    plot_figure_XY.canvas.mpl_connect('motion_notify_event', controller.motion_notify_callback)
+    plot_figure_XY.canvas.mpl_connect('button_press_event', controller.button_press_callback)
 
-    plot_canvas.draw()
+    # plot theta
+    plot_figure_theta = plt.Figure(figsize=(window.winfo_screenheight() * 7 / 1080, window.winfo_screenheight() * 2.5 / 1080))
+    plot_panel_theta = tk.Frame(window, background="white")
+    plot_panel_theta.grid(row=1, column=1)
+    plot_canvas_theta = FigureCanvasTkAgg(plot_figure_theta, plot_panel_theta)
+    plot_canvas_theta.get_tk_widget().pack(side=tk.LEFT)
+    plot_canvas_theta.draw()
+    theta_plot = PlotTheta(plot_figure_theta, 1000, 0, 2 * math.pi)
 
-    xy_plot = PlotXY(plot_figure, 100, -10, 10, 100, -10, 10, plot_grid)
-    theta_plot = PlotTheta(plot_figure, 1000, 0, 2 * math.pi, plot_grid)
-    resonances_plot = PlotDetM(plot_figure, im_k_res_value, im_k_min_value, im_k_max_value, plot_grid)
-
-    plot_figure.canvas.mpl_connect('button_press_event', controller.button_press_callback)
-    plot_figure.canvas.mpl_connect('button_release_event', controller.button_release_callback)
-    plot_figure.canvas.mpl_connect('motion_notify_event', controller.motion_notify_callback)
+    # plot detM
+    plot_figure_DetM = plt.Figure(figsize=(window.winfo_screenheight() * 7 / 1080, window.winfo_screenheight() * 5 / 1080))
+    plot_panel_DetM = tk.Frame(window, background="white")
+    plot_panel_DetM.grid(row=2, column=1)
+    plot_canvas_DetM = FigureCanvasTkAgg(plot_figure_DetM, plot_panel_DetM)
+    plot_canvas_DetM.get_tk_widget().pack(side=tk.LEFT)
+    plot_canvas_DetM.draw()
+    resonances_plot = PlotDetM(plot_figure_DetM, im_k_res_value, im_k_min_value, im_k_max_value)
 
 
 def initialize_control_panel():
     global x_slider, x_textbox, x_value, y_slider, y_textbox, y_value, r_slider, r_textbox, r_value, theta_slider, \
         theta_textbox, theta_value, add_scatterer_button, remove_scatterer_button, remove_all_button, \
         plane_wave_button, spherical_wave_button, k_slider, k_textbox, lambda_slider, lambda_textbox, \
-        refresh_scale_button, scale_max_textbox, scale_min_textbox, log_scale_button, pow_scale_button, \
-        step_scale_button, scale_type, pow_scale_textbox, step_scale_textbox, step_scale_slider, rc_slider, \
-        rc_textbox, rc_value, entropy_textbox, stddev_textbox, scattering_amp_button, hide_scatterers_button, \
-        modulus_view_button, phase_view_button, complex_view_button, x_res_textbox, x_res_value, x_max_textbox, \
-        x_max_value, x_min_textbox, x_min_value, y_res_textbox, y_res_value, y_max_textbox, y_max_value, \
-        y_min_textbox, y_min_value, theta_res_textbox, theta_res_value, apply_res_bounds_button, im_k_res_textbox, \
-        im_k_max_textbox, im_k_min_textbox, lattice_1d_button, n_1d_textbox, d_1d_textbox, x0_1d_textbox, \
-        y0_1d_textbox, r0_1d_textbox, theta0_1d_textbox, angle_1d_textbox,  lattice_2d_button, nx_2d_textbox, \
-        ny_2d_textbox, dx_2d_textbox, dy_2d_textbox, x0_2d_textbox, y0_2d_textbox, angle_2d_textbox, save_button, \
-        xy_plot, theta_plot, resonances_plot
+        max_model_button, hs_model_button, alpha_slider, alpha_textbox, refresh_scale_button, scale_max_textbox, \
+        scale_min_textbox, log_scale_button, pow_scale_button, step_scale_button, scale_type, pow_scale_textbox, \
+        step_scale_textbox, step_scale_slider, rc_slider, rc_textbox, rc_value, entropy_textbox, stddev_textbox, \
+        scattering_amp_button, hide_scatterers_button, modulus_view_button, phase_view_button, complex_view_button, \
+        x_res_textbox, x_res_value, x_max_textbox, x_max_value, x_min_textbox, x_min_value, y_res_textbox, \
+        y_res_value, y_max_textbox, y_max_value, y_min_textbox, y_min_value, theta_res_textbox, theta_res_value, \
+        apply_res_bounds_button, im_k_res_textbox, im_k_max_textbox, im_k_min_textbox, lattice_1d_button, \
+        n_1d_textbox, d_1d_textbox, x0_1d_textbox, y0_1d_textbox, r0_1d_textbox, theta0_1d_textbox, angle_1d_textbox, \
+        lattice_2d_button, nx_2d_textbox, ny_2d_textbox, dx_2d_textbox, dy_2d_textbox, x0_2d_textbox, y0_2d_textbox, \
+        angle_2d_textbox, save_button, xy_plot, theta_plot, resonances_plot
 
-    control_panel.pack(side=tk.RIGHT, fill=BOTH, expand=1)
-    control_canvas = tk.Canvas(control_panel, width=300)
+    control_panel.grid(row=0, column=2, rowspan=4, columnspan=2, sticky=tk.NSEW)
+    control_canvas = tk.Canvas(control_panel, width=375, height=1000)
     control_canvas.pack(side=LEFT, fill=BOTH, expand=1)
     scroll_bar = ttk.Scrollbar(control_panel, orient=VERTICAL, command=control_canvas.yview)
     scroll_bar.pack(side=RIGHT, fill=Y)
@@ -303,6 +331,30 @@ def initialize_control_panel():
     lambda_textbox.grid(row=row, column=2)
     row += 1
     controller.update_textbox(lambda_textbox, round(2*math.pi/maths.k, 5))
+
+    # Potential parameters
+    ttk.Separator(control_panel_utilities, orient=HORIZONTAL).grid(row=row, column=0, ipadx=150, pady=10, columnspan=3)
+    row += 1
+    tk.Label(control_panel_utilities, text="Potential model parameters").grid(row=row, column=0, sticky="nsew", columnspan=3)
+    row += 1
+
+    max_model_button = tk.Radiobutton(control_panel_utilities, text="Maximal model", variable=model_type, value=1,
+                                       command=controller.max_model)
+    max_model_button.grid(row=row, column=0, sticky=tk.W)
+    row += 1
+    hs_model_button = tk.Radiobutton(control_panel_utilities, text="Hard-sphere model", variable=model_type, value=0,
+                                       command=controller.hs_model)
+    hs_model_button.grid(row=row, column=0, sticky=tk.W)
+    row += 1
+
+    alpha_slider = tk.Scale(control_panel_utilities, from_=0, to=10, resolution=0.01, orient=tk.HORIZONTAL, length=200,
+                        label="\u03B1 [nm]", showvalue=False, variable=alpha_value, command=controller.update_alpha_from_slider)
+    alpha_textbox = tk.Entry(control_panel_utilities, width=10)
+    alpha_slider.grid(row=row, column=0, columnspan=2)
+    alpha_slider.set(1)
+    alpha_textbox.grid(row=row, column=2)
+    row += 1
+    controller.update_textbox(alpha_textbox, maths.alpha)
 
     # Colorbar
     ttk.Separator(control_panel_utilities, orient=HORIZONTAL).grid(row=row, column=0, ipadx=150, pady=10, columnspan=3)
@@ -557,6 +609,7 @@ def initialize_control_panel():
     theta_textbox.bind("<Return>", controller.update_theta_from_tb)
     k_textbox.bind("<Return>", controller.update_k_from_tb)
     lambda_textbox.bind("<Return>", controller.update_lambda_from_tb)
+    alpha_textbox.bind("<Return>", controller.update_alpha_from_tb)
     rc_textbox.bind("<Return>", controller.update_rc_from_tb)
     pow_scale_textbox.bind("<Return>", controller.update_pow_arg_from_tb)
     step_scale_textbox.bind("<Return>", controller.update_step_arg_from_tb)
