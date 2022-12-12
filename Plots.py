@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
 
 class PlotXY:
-    def __init__(self, root, x_res, x_min, x_max, y_res, y_min, y_max, root_grid):
+    def __init__(self, root, x_res, x_min, x_max, y_res, y_min, y_max):
         # Set the attributes
         self.root = root
         self.x_res = x_res
@@ -41,17 +41,17 @@ class PlotXY:
         self.dy = abs(self.y_mesh[1][1] - self.y_mesh[0][0])
 
         # Create the axis
-        self.ax = root.add_subplot(root_grid[:, 0])
+        self.ax = root.add_subplot()
         self.ax.set(adjustable='box', aspect='equal')
         self.ax.set_xlim(x_min, x_max)
         self.ax.set_ylim(y_min, y_max)
         self.ax.set_xlabel('x [nm]')
         self.ax.set_ylabel('y [nm]')
-        view.plot_canvas.draw()
+        view.plot_canvas_XY.draw()
         self.psi = np.zeros((x_res, y_res))
         self.pcm = self.ax.pcolormesh(self.x_mesh, self.y_mesh, self.psi, alpha=0, shading='auto')
         # self.root.colorbar(self.pcm, ax=self.ax, fraction=0.046, pad=0.04)
-        self.background = view.plot_canvas.copy_from_bbox(self.ax.bbox)
+        self.background = view.plot_canvas_XY.copy_from_bbox(self.ax.bbox)
 
         # Create the min and max bounds for the color legend
         self.scale_min = None
@@ -172,14 +172,14 @@ class PlotXY:
                 self.pcm = self.ax.imshow(complexTools.domaincol_c(self.psi, 0.9),
                                           origin="lower",
                                           extent=[self.x_min, self.x_max, self.y_min, self.y_max])
-            view.plot_canvas.restore_region(self.background)
+            view.plot_canvas_XY.restore_region(self.background)
             self.ax.draw_artist(self.pcm)
             for i in range(maths.N):
                 self.ax.draw_artist(self.scatterer_list[i])
                 self.scatterer_list[i].remove()
                 self.ax.add_patch(self.scatterer_list[i])
             self.ax.draw_artist(self.contour)
-            view.plot_canvas.blit(self.ax.bbox)
+            view.plot_canvas_XY.blit(self.ax.bbox)
 
     def update_mesh(self, update_x_res, update_x_min, update_x_max, update_y_res, update_y_min, update_y_max):
         self.x_mesh, self.y_mesh = np.meshgrid(np.linspace(update_x_min, update_x_max, update_x_res),
@@ -199,7 +199,7 @@ class PlotXY:
 
 
 class PlotK:
-    def __init__(self, root, re_k_res, re_k_min, re_k_max, im_k_res, im_k_min, im_k_max, root_grid):
+    def __init__(self, root, re_k_res, re_k_min, re_k_max, im_k_res, im_k_min, im_k_max):
         # Set the attributes
         self.root = root
         self.re_k_res = re_k_res
@@ -210,7 +210,7 @@ class PlotK:
         self.im_k_max = im_k_max
 
         # Create the axis
-        self.ax = root.add_subplot(root_grid[1, 1])
+        self.ax = root.add_subplot()
         self.ax.set(adjustable='box')
         self.ax.set_xlim(re_k_min, re_k_max)
         self.ax.set_ylim(im_k_min, im_k_max)
@@ -225,7 +225,7 @@ class PlotK:
 
 
 class PlotDetM:
-    def __init__(self, root, im_k_res, im_k_min, im_k_max, root_grid):
+    def __init__(self, root, im_k_res, im_k_min, im_k_max):
         # Set the attributes
         self.root = root
         self.im_k_res = im_k_res
@@ -237,13 +237,13 @@ class PlotDetM:
         self.det_m = np.zeros(im_k_res)
 
         # Create the axis
-        self.ax = root.add_subplot(root_grid[1, 1])
+        self.ax = root.add_subplot()
         self.ax.set(adjustable='box')
         self.ax.set_xlim(im_k_min, im_k_max)
         self.ax.set_xlabel('$\Im(k) [1/nm]$')
         self.ax.set_ylabel('det(M(k))')
-        view.plot_canvas.draw()
-        self.background = view.plot_canvas.copy_from_bbox(self.ax.bbox)
+        view.plot_canvas_DetM.draw()
+        self.background = view.plot_canvas_DetM.copy_from_bbox(self.ax.bbox)
         self.line = None
 
     def first_plot(self):
@@ -261,9 +261,10 @@ class PlotDetM:
         if not math.isnan(self.det_m[0]):
             self.ax.set_ylim(0, 2*self.det_m[-1])
             self.line[0].set_data(self.im_k_mesh, self.det_m)
-            view.plot_canvas.restore_region(self.background)
+            view.plot_canvas_DetM.restore_region(self.background)
             self.ax.draw_artist(self.line[0])
-            view.plot_canvas.blit(self.ax.bbox)
+            view.plot_canvas_DetM.blit(self.ax.bbox)
+            # view.plot_canvas_DetM.draw()
 
     def update_mesh(self, update_im_k_res, update_im_k_min, update_im_k_max):
         self.im_k_mesh = np.linspace(update_im_k_min, update_im_k_max, update_im_k_res)
@@ -275,7 +276,7 @@ class PlotDetM:
 
 
 class PlotTheta:
-    def __init__(self, root, theta_res, theta_min, theta_max, root_grid):
+    def __init__(self, root, theta_res, theta_min, theta_max):
         # Set the attributes
         self.root = root
         self.theta_res = theta_res
@@ -290,14 +291,14 @@ class PlotTheta:
         self.psi = np.zeros(theta_res)
 
         # Create the axis
-        self.ax = root.add_subplot(root_grid[0, 1])
+        self.ax = root.add_subplot()
         self.ax.set(adjustable='box')
         self.ax.set_xlim(theta_min, theta_max)
-        self.ax.set_ylim(0, 1)
+        self.ax.set_ylim(0, 2)
         self.ax.set_xlabel('\u03B8 [rad]')
         self.ax.set_ylabel('|\u03A8|²')
-        view.plot_canvas.draw()
-        self.background = view.plot_canvas.copy_from_bbox(self.ax.bbox)
+        view.plot_canvas_theta.draw()
+        self.background = view.plot_canvas_theta.copy_from_bbox(self.ax.bbox)
         self.line = None
 
     def first_plot(self):
@@ -306,14 +307,17 @@ class PlotTheta:
         coordinates = maths.coordinates
         if view.wave_type:
             self.psi = maths.phi_sph(self.x_contour, self.y_contour, k)
-        else:
-            self.psi = maths.phi_pl(self.x_contour, k)
+        # If plane wave, we do not add it
+        # else:
+        #     self.psi = maths.phi_pl(self.x_contour, k)
         for i in range(maths.N):
             dx = self.x_contour - coordinates[i][0]
             dy = self.y_contour - coordinates[i][1]
             self.psi += a[i] * maths.G(k, np.sqrt(dx * dx + dy * dy))
+        self.psi /= maths.phi_sph(self.x_contour, self.y_contour, k)
         self.psi = (np.abs(self.psi)) ** 2
-        self.psi /= max(self.psi)
+        self.ax.set_ylim(0, max(self.psi)*1.1)
+        # self.psi /= max(self.psi)
         if not math.isnan(self.psi[0]):
             self.line = self.ax.plot(self.theta_contour, self.psi, color='blue', linewidth=1)
             self.ax.add_line(self.line[0])
@@ -334,35 +338,40 @@ class PlotTheta:
         coordinates = maths.coordinates
         if view.wave_type.get():
             self.psi = maths.phi_sph(self.x_contour, self.y_contour, k)
-        else:
-            self.psi = maths.phi_pl(self.x_contour, k)
+        # If plane wave, we do not add it
+        # else:
+        #     self.psi = maths.phi_pl(self.x_contour, k)
         for i in range(maths.N):
             dx = self.x_contour - coordinates[i][0]
             dy = self.y_contour - coordinates[i][1]
             self.psi += a[i] * maths.G(k, np.sqrt(dx * dx + dy * dy))
         if view_type.get() == 0:
+            self.psi /= maths.phi_sph(self.x_contour, self.y_contour, k)
             self.psi = (np.abs(self.psi)) ** 2
-            self.psi /= max(self.psi)
-            if self.ax.get_ylim() != (0, 1):
-                self.ax.set_ylim(0, 1)
-                view.plot_canvas.draw()
+            self.ax.set_ylim(0, max(self.psi) * 1.1)
+            view.plot_canvas_theta.draw()
+            # self.psi /= max(self.psi)
+            # if self.ax.get_ylim() != (0, 2):
+            #     self.ax.set_ylim(0, 2)
+            #     view.plot_canvas.draw()
         elif view_type.get() == 1:
             self.psi = np.angle(self.psi)
-            if self.ax.get_ylim() == (0, 1):
+            if self.ax.get_ylim() == (0, 2):
                 self.ax.set_ylim(-math.pi, math.pi)
-                view.plot_canvas.draw()
+                view.plot_canvas_theta.draw()
         else:
+            self.psi /= maths.phi_sph(self.x_contour, self.y_contour, k)
             self.psi = (np.abs(self.psi)) ** 2
-            self.psi /= max(self.psi)
-            if self.ax.get_ylim() != (0, 1):
-                self.ax.set_ylim(0, 1)
-                view.plot_canvas.draw()
+            # self.psi /= max(self.psi)
+            if self.ax.get_ylim() != (0, 2):
+                self.ax.set_ylim(0, 2)
+                view.plot_canvas_theta.draw()
         if not math.isnan(self.psi[0]):
-            view.plot_canvas.restore_region(self.background)
+            view.plot_canvas_theta.restore_region(self.background)
             self.line[0].set_data(self.theta_contour, self.psi)
-            view.plot_canvas.restore_region(self.background)
+            view.plot_canvas_theta.restore_region(self.background)
             self.ax.draw_artist(self.line[0])
-            view.plot_canvas.blit(self.ax.bbox)
+            view.plot_canvas_theta.blit(self.ax.bbox)
 
         self.psi /= sum(self.psi)
         entropy = -sum(self.psi * np.log(self.psi))
