@@ -1,7 +1,7 @@
 #                                 VIEW.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    12 December 2022
+# Last edition :    15 December 2022
 # ------------------------------------------------------------------------
 
 # Imports ----------------------------------------------------------------
@@ -157,6 +157,7 @@ def initialise():
     initialize_window()
     initialize_plot_panel()
     initialize_control_panel()
+    maths.minimize_stddev()
     maths.initialize_scatterers()
     xy_plot.first_plot()
     theta_plot.first_plot()
