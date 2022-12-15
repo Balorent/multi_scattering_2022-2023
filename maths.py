@@ -1,7 +1,7 @@
 #                                 MATHS.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    12 December 2022
+# Last edition :    15 December 2022
 # ------------------------------------------------------------------------
 
 
@@ -22,7 +22,7 @@ if __name__ == "__main__":
 # Variables --------------------------------------------------------------
 
 # Scatterers parameters #
-N = 2                                       # Number of scatterers
+N = 1                                       # Number of scatterers
 radiusBall = 5                              # Radius of the ball in which the scatterers will be randomly placed
 coordinates = [[0, 0] for i in range(N)]    # Coordinates of each scatterer [[x_1, y_1], [x_2, y_2], ..., [x_N, y_N]]
 
@@ -85,7 +85,7 @@ def invF(k, alpha):
     This function return the value of the F used in the Foldy-Lax formalism
     """
     if view.model_type.get() == 1:  # Maximal model
-        res = -1j/4
+        res = 1j/4
     elif view.model_type.get() == 0:  # Hard-sphere model  OR  delta-like potential if k*alpha << 1
         res = -I(k, 0) * G(k, alpha) / I(k, alpha)
     return res
@@ -101,6 +101,38 @@ def initialize_scatterers():
         y_max = radiusBall * np.sin(np.arccos(xi/radiusBall))
         yi = random.random() * 2*y_max - y_max
         coordinates[i] = [xi, yi]
+
+
+def minimize_stddev():
+    theta_contour = np.linspace(0, 2 * math.pi, 1000)
+    x_contour = view.rc_value.get() * np.cos(theta_contour)
+    y_contour = view.rc_value.get() * np.sin(theta_contour)
+    x_grid, y_grid = np.linspace(-5, 5, 20), np.linspace(-5, 5, 20)
+    min_stddev = None
+    min_x, min_y = None, None
+    for iy in range(len(y_grid)):
+        for ix in range(len(x_grid)):
+            x, y = x_grid[ix], y_grid[iy]
+            if not(x == 0 and y == 0):
+                coordinates[0] = [x, y]
+                compute_a()
+                psi = phi_sph(x_contour, y_contour, k)
+                for i in range(N):
+                    dx = x_contour - coordinates[i][0]
+                    dy = y_contour - coordinates[i][1]
+                    psi += a[i] * G(k, np.sqrt(dx * dx + dy * dy))
+                psi /= phi_sph(x_contour, y_contour, k)
+                psi = (np.abs(psi)) ** 2
+                psi /= sum(psi)
+                mean = sum(theta_contour * psi)
+                stddev = np.sqrt(sum((theta_contour - mean) ** 2 * psi))
+                print("(",  round(x, 2), ", ",   round(y, 2), ")  :  ", round(stddev, 4))
+                if min_stddev is None or stddev < min_stddev:
+                    min_stddev = stddev
+                    min_x, min_y = x, y
+    print("solution : ", min_x, min_y, "  :  ", min_stddev)
+
+
 
 
 def compute_a():
