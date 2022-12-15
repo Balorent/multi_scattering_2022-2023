@@ -1,7 +1,7 @@
 #                                 PLOTS.PY
 # ------------------------------------------------------------------------
 # Author       :    Baptiste Lorent
-# Last edition :    12 December 2022
+# Last edition :    15 December 2022
 # ------------------------------------------------------------------------
 
 # Imports ----------------------------------------------------------------
@@ -315,7 +315,7 @@ class PlotTheta:
             dy = self.y_contour - coordinates[i][1]
             self.psi += a[i] * maths.G(k, np.sqrt(dx * dx + dy * dy))
         self.psi /= maths.phi_sph(self.x_contour, self.y_contour, k)
-        self.psi = (np.abs(self.psi)) ** 2
+        self.psi = (np.abs(self.psi))
         self.ax.set_ylim(0, max(self.psi)*1.1)
         # self.psi /= max(self.psi)
         if not math.isnan(self.psi[0]):
