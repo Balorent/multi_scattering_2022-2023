@@ -64,6 +64,25 @@ def compute_a(k, alpha):
     return invM.dot(vecPhi)
 
 
+def compute_variance(theta_mesh, phi_mesh, res):
+    res = res.reshape((1, len(res)*len(res[0])))[0]
+    theta_mesh = theta_mesh.reshape((1, len(theta_mesh)*len(theta_mesh[0])))[0]
+    phi_mesh = phi_mesh.reshape((1, len(phi_mesh)*len(phi_mesh[0])))[0]
+
+    theta_polar_dots = res * np.exp(1j * theta_mesh)
+    phi_polar_dots = res * np.exp(1j * phi_mesh)
+
+    theta_mean = np.angle(sum(theta_polar_dots))
+    phi_mean = np.angle(sum(phi_polar_dots))
+
+    print("mean theta = " + str(theta_mean))
+    print("mean phi = " + str(phi_mean))
+
+    stdvar = 0
+
+    return theta_mean, phi_mean, stdvar
+
+
 ## SETUP ##
 N = 30
 k = 1
@@ -75,6 +94,7 @@ for i in range(N):
     yi = random.random() * 2 * radiusBall - radiusBall
     zi = random.random() * 2 * radiusBall - radiusBall
     coordinates[i] = [xi, yi, zi]
+# coordinates[0] = [0, 0, 9999]
 a = compute_a(k, alpha)
 
 
@@ -101,16 +121,16 @@ a = compute_a(k, alpha)
 
 
 ## PLOT 2D ##
-ra = np.linspace(-np.pi, np.pi, 400)
-dec= np.linspace(-np.pi/2, np.pi/2, 400)
-phi,theta = np.meshgrid(ra,dec)
+phi = np.linspace(-np.pi, np.pi, 500)
+theta = np.linspace(-np.pi / 2, np.pi / 2, 500)
+phi_mesh,theta_mesh = np.meshgrid(phi, theta)
 RAD = 180/np.pi
 r = 10000
 # ATTENTION : comme theta va de -pi à pi, il n'est pas défini comme en coordonnées sphériques usuelles,
 # et les formules doivent donc etre adaptées (inverser sin et cos)
-x_contour = r*np.cos(theta)*np.cos(phi)
-y_contour = r*np.cos(theta)*np.sin(phi)
-z_contour = r*np.sin(theta)
+x_contour = r * np.cos(theta_mesh) * np.cos(phi_mesh)
+y_contour = r * np.cos(theta_mesh) * np.sin(phi_mesh)
+z_contour = r*np.sin(theta_mesh)
 res = incident_wave(x_contour, y_contour, z_contour, k)
 for i in range(N):
     dx = x_contour - coordinates[i][0]
@@ -127,13 +147,16 @@ ax = fig.add_subplot(1,2,2)
 m = Basemap(projection='moll',lon_0=0,resolution='c') #projection='moll',lon_0=0,resolution='c'
 min = (res.min()>10**(-10)) * (res.min()-10**(-10))
 max = res.max()+res.max()/100
-cont = m.contourf(phi*RAD, theta*RAD, res, np.arange(min, max, (max - min)/200), cmap=plt.cm.jet, latlon=True)
+cont = m.contourf(phi_mesh * RAD, theta_mesh * RAD, res, np.arange(min, max, (max - min) / 200), cmap=plt.cm.jet, latlon=True)
 cbar = m.colorbar(cont)
 
 parallels = np.arange(-90.,90.,30.)
 m.drawparallels(parallels,labels=[False,False,False,False])
 meridians = np.arange(-180.,180.,30.)
 m.drawmeridians(meridians,labels=[False,False,False,False])
+
+theta_mean, phi_mean, stdvar = compute_variance(theta_mesh, phi_mesh, res)
+m.scatter(phi_mean*RAD, theta_mean*RAD, marker = 'o', color='k', latlon=True)
 
 # SCATTERS (basemap)
 ax2 = fig.add_subplot(1,2,1, projection='3d')

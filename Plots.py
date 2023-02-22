@@ -339,8 +339,7 @@ class PlotTheta:
 
         self.psi_real /= sum(self.psi_real)
         entropy = -sum(self.psi_real * np.log(self.psi_real))
-        mean = sum(self.theta_contour * self.psi_real)
-        stddev = np.sqrt(sum((self.theta_contour - mean) ** 2 * self.psi_real))
+        stddev = maths.compute_stddev(self.theta_contour, self.psi_real)
         controller.update_textbox(view.entropy_textbox, round(entropy, 5))
         controller.update_textbox(view.stddev_textbox, round(stddev, 5))
 
@@ -383,12 +382,7 @@ class PlotTheta:
             view.plot_canvas_theta.blit(self.ax.bbox)
         self.psi_real /= sum(self.psi_real)
         entropy = -sum(self.psi_real * np.log(self.psi_real))
-        polar_dots = self.psi_real * np.exp(1j * self.theta_contour)
-        mean = np.angle(sum(polar_dots))
-        theta_contour_2 = self.theta_contour - (mean + 2*math.pi*(mean<0)) \
-                          - [2*math.pi*(0 < mean < math.pi and 0 < self.theta_contour[i] > mean + math.pi) for i in range(len(self.theta_contour))] \
-                          + [2*math.pi*(math.pi < mean+2*math.pi < 2*math.pi and 0 <= self.theta_contour[i] < mean + math.pi) for i in range(len(self.theta_contour))]
-        stddev = np.sqrt(sum(theta_contour_2**2 * self.psi_real))
+        stddev = maths.compute_stddev(self.theta_contour, self.psi_real)
         controller.update_textbox(view.entropy_textbox, round(entropy, 5))
         controller.update_textbox(view.stddev_textbox, round(stddev, 5))
 

@@ -175,3 +175,14 @@ def det_m(re_k, im_k):
             else:
                 M2[i, i] = invF(k, alpha)
     return np.linalg.det(M2)
+
+
+def compute_stddev(theta_mesh, res):
+    polar_dots = res * np.exp(1j * theta_mesh)
+    mean = np.angle(sum(polar_dots))
+    theta_contour_2 = theta_mesh - \
+                      (mean + 2 * math.pi * (mean < 0)) - \
+                      [2 * math.pi * (0 < mean < math.pi and 0 < theta_mesh[i] > mean + math.pi) for i in range(len(theta_mesh))] + \
+                      [2 * math.pi * (math.pi < mean + 2 * math.pi < 2 * math.pi and 0 <= theta_mesh[i] < mean + math.pi) for i in range(len(theta_mesh))]
+    stddev = np.sqrt(sum(theta_contour_2 ** 2 * res))
+    return stddev
