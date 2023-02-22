@@ -34,7 +34,7 @@ def func_vals(f, re, im, N):  # evaluates the complex function at the nodes of t
 
 def domaincol_c(w, s):  # Classical domain coloring
     # w is the  array of values f(z)
-    # s is the constant saturation !
+    # s is the constant saturation !a
 
     H = Hcomplex(w)
     S = s * np.ones(H.shape)
