@@ -177,12 +177,11 @@ def det_m(re_k, im_k):
     return np.linalg.det(M2)
 
 
-def compute_stddev(theta_mesh, res):
-    polar_dots = res * np.exp(1j * theta_mesh)
-    mean = np.angle(sum(polar_dots))
-    theta_contour_2 = theta_mesh - \
-                      (mean + 2 * math.pi * (mean < 0)) - \
-                      [2 * math.pi * (0 < mean < math.pi and 0 < theta_mesh[i] > mean + math.pi) for i in range(len(theta_mesh))] + \
-                      [2 * math.pi * (math.pi < mean + 2 * math.pi < 2 * math.pi and 0 <= theta_mesh[i] < mean + math.pi) for i in range(len(theta_mesh))]
-    stddev = np.sqrt(sum(theta_contour_2 ** 2 * res))
-    return stddev
+def directional_stat(theta, res):
+    d_theta = theta[1] - theta[0]
+    norm = sum(res * d_theta)
+    mean = np.arctan2(sum(res * np.sin(theta) * d_theta), sum(res * np.cos(theta) * d_theta))
+    mean_res_length = np.sqrt(sum(res * np.cos(theta) * d_theta)**2 + sum(res * np.sin(theta) * d_theta)**2) / norm
+    variance = 1-mean_res_length
+    ang_std_dev = np.sqrt(-2 * np.log(mean_res_length))
+    return mean, mean_res_length, variance, ang_std_dev

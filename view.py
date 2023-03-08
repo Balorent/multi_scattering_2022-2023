@@ -96,7 +96,7 @@ rc_slider = None
 rc_textbox = None
 rc_value = tk.DoubleVar()
 rc_value.set(8)
-entropy_textbox = None
+variance_textbox = None
 stddev_textbox = None
 total_view_button = None
 incident_view_button = None
@@ -227,7 +227,7 @@ def initialize_control_panel():
         plane_wave_button, spherical_wave_button, k_slider, k_textbox, lambda_slider, lambda_textbox, \
         max_model_button, hs_model_button, alpha_slider, alpha_textbox, refresh_scale_button, scale_max_textbox, \
         scale_min_textbox, log_scale_button, pow_scale_button, step_scale_button, scale_type, pow_scale_textbox, \
-        step_scale_textbox, step_scale_slider, rc_slider, rc_textbox, rc_value, entropy_textbox, stddev_textbox, \
+        step_scale_textbox, step_scale_slider, rc_slider, rc_textbox, rc_value, variance_textbox, stddev_textbox, \
         total_view_button, incident_view_button, scattered_view_button, scattering_amp_button, hide_scatterers_button, \
         modulus_view_button, phase_view_button, complex_view_button, x_res_textbox, x_res_value, x_max_textbox, \
         x_max_value, x_min_textbox, x_min_value, y_res_textbox, y_res_value, y_max_textbox, y_max_value, \
@@ -429,16 +429,16 @@ def initialize_control_panel():
     # Functions to optimize
     ttk.Separator(control_panel_utilities, orient=HORIZONTAL).grid(row=row, column=0, ipadx=150, pady=10, columnspan=3)
     row += 1
-    tk.Label(control_panel_utilities, text="Optimized functions").grid(row=row, column=0, sticky="nsew",
+    tk.Label(control_panel_utilities, text="Directional statistics").grid(row=row, column=0, sticky="nsew",
                                                                        columnspan=3)
     row += 1
 
-    tk.Label(control_panel_utilities, text="entropy S = ").grid(row=row, column=0, pady=2, columnspan=2, sticky=tk.E)
-    entropy_textbox = tk.Entry(control_panel_utilities, width=10)
-    entropy_textbox.grid(row=row, column=2)
+    tk.Label(control_panel_utilities, text="variance V = ").grid(row=row, column=0, pady=2, columnspan=2, sticky=tk.E)
+    variance_textbox = tk.Entry(control_panel_utilities, width=10)
+    variance_textbox.grid(row=row, column=2)
     row += 1
 
-    tk.Label(control_panel_utilities, text="std dev \u03C3 = ").grid(row=row, column=0, pady=2, columnspan=2, sticky=tk.E)
+    tk.Label(control_panel_utilities, text="std dev S = ").grid(row=row, column=0, pady=2, columnspan=2, sticky=tk.E)
     stddev_textbox = tk.Entry(control_panel_utilities, width=10)
     stddev_textbox.grid(row=row, column=2)
     row += 1

@@ -280,7 +280,7 @@ class PlotDetM:
             view.plot_canvas_DetM.restore_region(self.background)
             self.ax.draw_artist(self.line[0])
             view.plot_canvas_DetM.blit(self.ax.bbox)
-            # view.plot_canvas_DetM.draw()
+            view.plot_canvas_DetM.draw()
 
     def update_mesh(self, update_im_k_res, update_im_k_min, update_im_k_max):
         self.im_k_mesh = np.linspace(update_im_k_min, update_im_k_max, update_im_k_res)
@@ -334,14 +334,13 @@ class PlotTheta:
         if not math.isnan(self.psi_real[0]):
             self.line = self.ax.plot(self.theta_contour, self.psi_real, color='blue', linewidth=1)
             self.ax.add_line(self.line[0])
-        controller.update_textbox(view.entropy_textbox, 1)
+        controller.update_textbox(view.variance_textbox, 1)
         controller.update_textbox(view.stddev_textbox, 1)
 
         self.psi_real /= sum(self.psi_real)
-        entropy = -sum(self.psi_real * np.log(self.psi_real))
-        stddev = maths.compute_stddev(self.theta_contour, self.psi_real)
-        controller.update_textbox(view.entropy_textbox, round(entropy, 5))
-        controller.update_textbox(view.stddev_textbox, round(stddev, 5))
+        (mean, mean_res_length, variance, ang_std_dev) = maths.directional_stat(self.theta_contour, self.psi_real)
+        controller.update_textbox(view.variance_textbox, round(variance, 5))
+        controller.update_textbox(view.stddev_textbox, round(ang_std_dev, 5))
 
     def update_plot(self):
         view_type = view.view_type_2
@@ -381,10 +380,9 @@ class PlotTheta:
             self.ax.draw_artist(self.line[0])
             view.plot_canvas_theta.blit(self.ax.bbox)
         self.psi_real /= sum(self.psi_real)
-        entropy = -sum(self.psi_real * np.log(self.psi_real))
-        stddev = maths.compute_stddev(self.theta_contour, self.psi_real)
-        controller.update_textbox(view.entropy_textbox, round(entropy, 5))
-        controller.update_textbox(view.stddev_textbox, round(stddev, 5))
+        (mean, mean_res_length, variance, ang_std_dev) = maths.directional_stat(self.theta_contour, self.psi_real)
+        controller.update_textbox(view.variance_textbox, round(variance, 5))
+        controller.update_textbox(view.stddev_textbox, round(ang_std_dev, 5))
 
     def update_mesh(self, update_res):
         if update_res:
