@@ -48,9 +48,9 @@ class PlotXY:
         self.ax.set_xlabel('x [nm]')
         self.ax.set_ylabel('y [nm]')
         view.plot_canvas_XY.draw()
-        self.psi_real = np.zeros((x_res, y_res))
-        self.psi_comp = np.zeros((x_res, y_res), dtype=complex)
-        self.pcm = self.ax.pcolormesh(self.x_mesh, self.y_mesh, abs(self.psi_real), alpha=0, shading='auto')
+        self.psi = np.zeros((x_res, y_res), dtype=complex)
+        self.psi_abs = np.zeros((x_res, y_res))
+        self.pcm = self.ax.pcolormesh(self.x_mesh, self.y_mesh, abs(self.psi_abs), alpha=0, shading='auto')
         # self.root.colorbar(self.pcm, ax=self.ax, fraction=0.046, pad=0.04)
         self.background = view.plot_canvas_XY.copy_from_bbox(self.ax.bbox)
 
@@ -69,31 +69,23 @@ class PlotXY:
     def first_plot(self):
         self.coordinates = maths.coordinates
 
-        # Compute a
-        maths.compute_a()
-        k = maths.k
-        a = maths.a
+        # Compute a and A
+        maths.a = maths.compute_a()
+        maths.A = maths.compute_A()
 
         # compute the square modulus of the wave function
-        if view.wave_type.get():
-            self.psi_comp = maths.phi_sph(self.x_mesh, self.y_mesh, k)
-        else:
-            self.psi_comp = maths.phi_pl(self.x_mesh, k)
-        for i in range(maths.N):
-            self.psi_comp += a[i] * \
-                 maths.G(k, np.sqrt((self.x_mesh - self.coordinates[i][0]) * (self.x_mesh - self.coordinates[i][0]) +
-                                    (self.y_mesh - self.coordinates[i][1]) * (self.y_mesh - self.coordinates[i][1])))
-        self.psi_real = (np.abs(self.psi_comp)) ** 2
+        self.psi = maths.compute_psi(self.x_mesh, self.y_mesh, maths.a, maths.A)
+        self.psi_abs = (np.abs(self.psi)) ** 2
         # self.psi_real /= (self.dx * self.dy * sum(sum(self.psi_real)))  # Normalization such that the integral(|psi|²) = 1
 
         # Define the bounds of the min and max bounds for the color legend
-        self.scale_min = self.psi_real.min()
-        self.scale_max = self.psi_real.max()
+        self.scale_min = self.psi_abs.min()
+        self.scale_max = self.psi_abs.max()
         controller.update_textbox(view.scale_min_textbox, round(self.scale_min, 5))
         controller.update_textbox(view.scale_max_textbox, round(self.scale_max, 5))
 
         # Display the pcolormesh
-        self.pcm = self.ax.imshow(self.psi_real, norm=colors.LogNorm(vmin=self.scale_min, vmax=self.scale_max),
+        self.pcm = self.ax.imshow(self.psi_abs, norm=colors.LogNorm(vmin=self.scale_min, vmax=self.scale_max),
                                   cmap=self.cmap_type,
                                   origin="lower",
                                   extent=[self.x_min, self.x_max, self.y_min, self.y_max])
@@ -109,8 +101,7 @@ class PlotXY:
         self.ax.add_patch(self.contour)
 
     def update_plot(self, update_scatterers, update_res_bound, new_x=0, new_y=0):
-        self.psi_real = np.zeros((self.x_res, self.y_res))
-        self.psi_comp = np.zeros((self.x_res, self.y_res), dtype=complex)
+        self.psi_abs = np.zeros((self.x_res, self.y_res))
 
         scattering_amp_bool = controller.scattering_amp_bool
         view_type = view.view_type_2
@@ -121,50 +112,35 @@ class PlotXY:
             maths.coordinates[update_scatterers][0], maths.coordinates[update_scatterers][1] = new_x, new_y
             self.coordinates[update_scatterers][0], maths.coordinates[update_scatterers][1] = new_x, new_y
 
-        # Compute a
-        maths.compute_a()
-        k = maths.k
-        a = maths.a
+        # Compute a and A
+        maths.a = maths.compute_a()
+        maths.A = maths.compute_A()
 
         # Update scatterers size if necessary
         if scattering_amp_bool:
             for i in range(maths.N):
-                self.scatterer_list[i].radius = abs(a[i]) / max(abs(a)) * (self.x_max - self.x_min) / 20
+                self.scatterer_list[i].radius = abs(maths.a[i]) / max(abs(maths.a)) * (self.x_max - self.x_min) / 20
 
         # compute the square modulus of the wave function
         if view.view_type_1.get() == 0:
-            if view.wave_type.get():
-                self.psi_comp = maths.phi_sph(self.x_mesh, self.y_mesh, k)
-            else:
-                self.psi_comp = maths.phi_pl(self.x_mesh, k)
-            for i in range(maths.N):
-                self.psi_comp += a[i] * \
-                     maths.G(k, np.sqrt((self.x_mesh - self.coordinates[i][0]) * (self.x_mesh - self.coordinates[i][0]) +
-                                        (self.y_mesh - self.coordinates[i][1]) * (self.y_mesh - self.coordinates[i][1])))
+            self.psi = maths.compute_psi(self.x_mesh, self.y_mesh, maths.a, maths.A)
         elif view.view_type_1.get() == 1:
-            if view.wave_type.get():
-                self.psi_comp = maths.phi_sph(self.x_mesh, self.y_mesh, k)
-            else:
-                self.psi_comp = maths.phi_pl(self.x_mesh, k)
+            self.psi = maths.incident_wave(self.x_mesh, self.y_mesh, maths.k)
         else:
-            for i in range(maths.N):
-                self.psi_comp += a[i] * \
-                     maths.G(k, np.sqrt((self.x_mesh - self.coordinates[i][0]) * (self.x_mesh - self.coordinates[i][0]) +
-                                        (self.y_mesh - self.coordinates[i][1]) * (self.y_mesh - self.coordinates[i][1])))
+            self.psi = maths.compute_psi(self.x_mesh, self.y_mesh, maths.a, maths.A) - maths.incident_wave(self.x_mesh, self.y_mesh, maths.k)
 
         if view_type.get() == 0:
-            self.psi_real = (np.abs(self.psi_comp)) ** 2
-            # self.psi_real /= (self.dx * self.dy * sum(sum(self.psi_real)))  # Normalization such that the integral(|psi|²) = 1
+            self.psi_abs = (np.abs(self.psi)) ** 2
         elif view_type.get() == 1:
-            self.psi_real = np.angle(self.psi_comp)
+            self.psi_abs = np.angle(self.psi)
         # else:
-            # self.psi_real /= (self.dx * self.dy * sum(sum(np.abs(self.psi_comp)**2)))  # Normalization such that the integral(|psi|²) = 1
+            # self.psi_abs /= (self.dx * self.dy * sum(sum(np.abs(self.psi)**2)))  # Normalization such that the integral(|psi|²) = 1
 
-        if not math.isnan(np.abs(self.psi_real[0][0])):
+        if not math.isnan(np.abs(self.psi_abs[0][0])):
             if not update_res_bound and view_type.get() != 2:
-                self.pcm.set_array(self.psi_real)
+                self.pcm.set_array(self.psi_abs)
             elif view_type.get() == 0:
-                self.pcm = self.ax.imshow(self.psi_real,
+                self.pcm = self.ax.imshow(self.psi_abs,
                                           cmap='YlOrRd',
                                           origin="lower",
                                           extent=[self.x_min, self.x_max, self.y_min, self.y_max])
@@ -180,12 +156,12 @@ class PlotXY:
                                                           ncolors=256))
 
             elif view_type.get() == 1:
-                self.pcm = self.ax.imshow(self.psi_real, norm=colors.Normalize(vmin=-math.pi, vmax=math.pi),
+                self.pcm = self.ax.imshow(self.psi_abs, norm=colors.Normalize(vmin=-math.pi, vmax=math.pi),
                                           cmap='twilight',
                                           origin="lower",
                                           extent=[self.x_min, self.x_max, self.y_min, self.y_max])
             elif view_type.get() == 2:
-                self.pcm = self.ax.imshow(complexTools.domaincol_c(self.psi_real, 0.9),
+                self.pcm = self.ax.imshow(complexTools.domaincol_c(self.psi_abs, 0.9),
                                           origin="lower",
                                           extent=[self.x_min, self.x_max, self.y_min, self.y_max])
             view.plot_canvas_XY.restore_region(self.background)
@@ -304,9 +280,9 @@ class PlotTheta:
         self.x_contour = view.rc_value.get() * np.cos(self.theta_contour)
         self.y_contour = view.rc_value.get() * np.sin(self.theta_contour)
         self.dtheta = abs(self.theta_contour[1] - self.theta_contour[0])
-        # self.psi = np.zeros(theta_res)
-        self.psi_real = np.zeros(theta_res)
-        self.psi_comp = np.zeros(theta_res, dtype=complex)
+        self.f, self.psi = np.zeros(theta_res, dtype=complex), np.zeros(theta_res, dtype=complex)
+        self.current_diff, self.cross_section = np.zeros(theta_res), np.zeros(theta_res)
+        self.to_plot = np.zeros(theta_res)
 
         # Create the axis
         self.ax = root.add_subplot()
@@ -320,67 +296,76 @@ class PlotTheta:
         self.line = None
 
     def first_plot(self):
-        k = maths.k
-        a = maths.a
-        coordinates = maths.coordinates
-        self.psi_comp = np.zeros(self.theta_res, dtype=complex)
-        for i in range(maths.N):
-            dx = self.x_contour - coordinates[i][0]
-            dy = self.y_contour - coordinates[i][1]
-            self.psi_comp += a[i] * maths.G(k, np.sqrt(dx * dx + dy * dy))
-        self.psi_comp /= np.exp(1j*k*view.rc_value.get())/np.sqrt(view.rc_value.get())
-        self.psi_real = (np.abs(self.psi_comp))**2
-        self.ax.set_ylim(0, max(self.psi_real)*1.1)
-        if not math.isnan(self.psi_real[0]):
-            self.line = self.ax.plot(self.theta_contour, self.psi_real, color='blue', linewidth=1)
+        self.psi = maths.compute_psi(self.x_contour, self.y_contour, maths.a, maths.A)
+        self.f = ( self.psi - maths.incident_wave(self.x_contour, self.y_contour, maths.k) ) / maths.phi_sph(self.x_contour, self.y_contour, maths.k)
+
+        if view.wave_type.get(): # Spherical wave
+            self.current_diff = (np.abs(self.f))**2 + 2*np.real(self.f)
+            A = 1/4 / ( 1/4 + 1/(8*np.pi) * sum(self.current_diff * 2*np.pi/self.theta_res) )
+            self.current_diff = maths.A*self.current_diff + maths.A - 1
+            self.ax.set_ylim(min(self.current_diff), max(self.current_diff))
+            self.to_plot = self.current_diff
+            # optical theorem (spherical)
+            # print("Spherical optical theorem :", 1/(8*np.pi) * sum(self.current_diff * 2*np.pi/self.theta_res), "=", 0)
+        else: # Plane wave
+            self.cross_section = np.abs(self.f)**2
+            self.ax.set_ylim(min(self.cross_section), max(self.cross_section))
+            self.to_plot = self.cross_section
+            # optical theorem (plane)
+            # I_s = maths.k * sum(np.abs(self.f) ** 2 * 2 * np.pi / self.theta_res / (8 * np.pi * maths.k))
+            # I_itf = np.imag(self.f[0])
+            # print("    Plane optical theorem :", I_s, "+", I_itf, "=", 0)
+
+        if not math.isnan(self.to_plot[0]):
+            self.line = self.ax.plot(self.theta_contour, self.to_plot, color='blue', linewidth=1)
             self.ax.add_line(self.line[0])
         controller.update_textbox(view.variance_textbox, 1)
         controller.update_textbox(view.stddev_textbox, 1)
 
-        self.psi_real /= sum(self.psi_real)
-        (mean, mean_res_length, variance, ang_std_dev) = maths.directional_stat(self.theta_contour, self.psi_real)
+        (mean, mean_res_length, variance, ang_std_dev) = maths.directional_stat(self.theta_contour, self.to_plot)
         controller.update_textbox(view.variance_textbox, round(variance, 5))
         controller.update_textbox(view.stddev_textbox, round(ang_std_dev, 5))
 
     def update_plot(self):
-        view_type = view.view_type_2
-        k = maths.k
-        a = maths.a
-        coordinates = maths.coordinates
-        self.psi_comp = np.zeros(self.theta_res, dtype=complex)
-        for i in range(maths.N):
-            dx = self.x_contour - coordinates[i][0]
-            dy = self.y_contour - coordinates[i][1]
-            self.psi_comp += a[i] * maths.G(k, np.sqrt(dx * dx + dy * dy))
-        if view_type.get() == 0:
-            self.psi_comp /= maths.phi_sph(self.x_contour, self.y_contour, k)
-            self.psi_real = (np.abs(self.psi_comp))**2
-            self.ax.set_ylim(0, max(self.psi_real)*1.1 + (max(self.psi_real) == 0))
-            view.plot_canvas_theta.draw()
-            # self.psi /= max(self.psi)
-            # if self.ax.get_ylim() != (0, 2):
-            #     self.ax.set_ylim(0, 2)
-            #     view.plot_canvas.draw()
-        elif view_type.get() == 1:
-            self.psi_real = np.angle(self.psi_comp)
-            if self.ax.get_ylim() == (0, 2):
-                self.ax.set_ylim(-math.pi, math.pi)
-                view.plot_canvas_theta.draw()
+        if not controller.asymptotic_bool:
+            self.psi = maths.compute_psi(self.x_contour, self.y_contour, maths.a, maths.A)
+            self.f = (self.psi - maths.incident_wave(self.x_contour, self.y_contour, maths.k)) / maths.phi_sph(self.x_contour, self.y_contour, maths.k)
+            if view.wave_type.get():  # Spherical wave
+                self.current_diff = np.abs(self.f) ** 2 + 2 * np.real(self.f)
+                A = 1/4 / (1/4 + 1/(8*np.pi) * sum(self.current_diff * 2*np.pi/self.theta_res))
+                self.current_diff = A*self.current_diff + A - 1
+                self.ax.set_ylim(min(self.current_diff), max(self.current_diff))
+                self.to_plot = self.current_diff
+            else:  # Plane wave
+                self.cross_section = np.abs(self.f) ** 2 / maths.k
+                self.ax.set_ylim(min(self.cross_section), max(self.cross_section))
+                self.to_plot = self.cross_section
+
         else:
-            self.psi_comp /= maths.phi_sph(self.x_contour, self.y_contour, k)
-            self.psi_real = (np.abs(self.psi_comp)) ** 2
-            # self.psi /= max(self.psi)
-            if self.ax.get_ylim() != (0, 2):
-                self.ax.set_ylim(0, 2)
-                view.plot_canvas_theta.draw()
-        if not math.isnan(self.psi_real[0]):
+            if view.wave_type.get(): # Spherical wave
+                self.current_diff = maths.compute_current_diff(self.theta_res)
+                self.ax.set_ylim(min(self.current_diff), max(self.current_diff))
+                self.to_plot = self.current_diff
+                # optical theorem (spherical)
+                # print("Spherical optical theorem :", 1/(8*np.pi) * sum(self.current_diff * 2*np.pi/self.theta_res), "=", 0)
+            else: # Plane wave
+                self.cross_section = maths.compute_cross_section(self.theta_res)
+                self.ax.set_ylim(min(self.cross_section), max(self.cross_section))
+                self.to_plot = self.cross_section
+                # optical theorem (plane)
+                # I_s = maths.k * sum(np.abs(self.f)**2 * 2*np.pi/self.theta_res / (8*np.pi*maths.k))
+                # I_itf = np.imag(self.f[0])
+                # print("    Plane optical theorem :", I_s, "+", I_itf, "=", 0)
+
+        view.plot_canvas_theta.draw()
+        if not math.isnan(self.to_plot[0]):
             view.plot_canvas_theta.restore_region(self.background)
-            self.line[0].set_data(self.theta_contour, self.psi_real)
+            self.line[0].set_data(self.theta_contour, self.to_plot)
             view.plot_canvas_theta.restore_region(self.background)
             self.ax.draw_artist(self.line[0])
             view.plot_canvas_theta.blit(self.ax.bbox)
-        self.psi_real /= sum(self.psi_real)
-        (mean, mean_res_length, variance, ang_std_dev) = maths.directional_stat(self.theta_contour, self.psi_real)
+
+        (mean, mean_res_length, variance, ang_std_dev) = maths.directional_stat(self.theta_contour, self.to_plot)
         controller.update_textbox(view.variance_textbox, round(variance, 5))
         controller.update_textbox(view.stddev_textbox, round(ang_std_dev, 5))
 
@@ -391,5 +376,4 @@ class PlotTheta:
         self.y_contour = float(view.rc_textbox.get()) * np.sin(self.theta_contour)
         self.dtheta = abs(self.theta_contour[1] - self.theta_contour[0])
         self.theta_res = view.theta_res_value
-        self.psi_real = np.zeros(self.theta_res)
-        self.psi_comp = np.zeros(self.theta_res, dtype=complex)
+        self.f = np.zeros(self.theta_res, dtype=complex)

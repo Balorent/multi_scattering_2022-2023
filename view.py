@@ -96,6 +96,7 @@ rc_slider = None
 rc_textbox = None
 rc_value = tk.DoubleVar()
 rc_value.set(8)
+asymptotic_button = None
 variance_textbox = None
 stddev_textbox = None
 total_view_button = None
@@ -148,9 +149,16 @@ dx_2d_textbox = None
 dy_2d_textbox = None
 x0_2d_textbox = None
 y0_2d_textbox = None
+parabola_button = None
+n_parabola_textbox = None
+angle_parabola_textbox = None
+d_from_origin_parabola_textbox = None
+width_parabola_textbox = None
 angle_2d_textbox = None
 save_button = None
 save_title_textbox = None
+load_button = None
+load_textbox = None
 
 # Plots #
 xy_plot = None
@@ -227,15 +235,16 @@ def initialize_control_panel():
         plane_wave_button, spherical_wave_button, k_slider, k_textbox, lambda_slider, lambda_textbox, \
         max_model_button, hs_model_button, alpha_slider, alpha_textbox, refresh_scale_button, scale_max_textbox, \
         scale_min_textbox, log_scale_button, pow_scale_button, step_scale_button, scale_type, pow_scale_textbox, \
-        step_scale_textbox, step_scale_slider, rc_slider, rc_textbox, rc_value, variance_textbox, stddev_textbox, \
+        step_scale_textbox, step_scale_slider, rc_slider, rc_textbox, rc_value, asymptotic_button, variance_textbox, stddev_textbox, \
         total_view_button, incident_view_button, scattered_view_button, scattering_amp_button, hide_scatterers_button, \
         modulus_view_button, phase_view_button, complex_view_button, x_res_textbox, x_res_value, x_max_textbox, \
         x_max_value, x_min_textbox, x_min_value, y_res_textbox, y_res_value, y_max_textbox, y_max_value, \
         y_min_textbox, y_min_value, theta_res_textbox, theta_res_value, apply_res_bounds_button, im_k_res_textbox, \
         im_k_max_textbox, im_k_min_textbox, lattice_1d_button, n_1d_textbox, d_1d_textbox, x0_1d_textbox, \
         y0_1d_textbox, r0_1d_textbox, theta0_1d_textbox, angle_1d_textbox, lattice_2d_button, nx_2d_textbox, \
-        ny_2d_textbox, dx_2d_textbox, dy_2d_textbox, x0_2d_textbox, y0_2d_textbox, angle_2d_textbox, save_button, \
-        xy_plot, theta_plot, resonances_plot, save_title_textbox
+        ny_2d_textbox, dx_2d_textbox, dy_2d_textbox, x0_2d_textbox, y0_2d_textbox, angle_2d_textbox, parabola_button, \
+        save_button, n_parabola_textbox, angle_parabola_textbox, d_from_origin_parabola_textbox, \
+        width_parabola_textbox, xy_plot, theta_plot, resonances_plot, save_title_textbox, load_button, load_textbox
 
     control_panel.grid(row=0, column=2, rowspan=4, columnspan=2, sticky=tk.NSEW)
     control_canvas = tk.Canvas(control_panel, width=375, height=1000)
@@ -425,6 +434,10 @@ def initialize_control_panel():
     rc_textbox.grid(row=row, column=2)
     row += 1
     controller.update_textbox(rc_textbox, round(rc_value.get(), 5))
+    asymptotic_button = tk.Checkbutton(control_panel_utilities, text="Asymptotic value",
+                                           command=controller.asymptotic_value)
+    asymptotic_button.grid(row=row, column=0, sticky=tk.W)
+    row += 1
 
     # Functions to optimize
     ttk.Separator(control_panel_utilities, orient=HORIZONTAL).grid(row=row, column=0, ipadx=150, pady=10, columnspan=3)
@@ -617,6 +630,26 @@ def initialize_control_panel():
     angle_2d_textbox.grid(row=row_presets_panel, column=3)
     row_presets_panel += 1
 
+    row_presets_panel = 0
+    parabola_button = tk.Button(presets_panel, text="Parabola", command=controller.parabola)
+    parabola_button.grid(row=row_presets_panel, column=4, columnspan=2)
+    row_presets_panel += 1
+    tk.Label(presets_panel, text="N").grid(row=row_presets_panel, column=4, pady=2)
+    n_parabola_textbox = tk.Entry(presets_panel, width=5)
+    n_parabola_textbox.grid(row=row_presets_panel, column=5)
+    row_presets_panel += 1
+    tk.Label(presets_panel, text="\u03B1").grid(row=row_presets_panel, column=4, pady=2)
+    angle_parabola_textbox = tk.Entry(presets_panel, width=5)
+    angle_parabola_textbox.grid(row=row_presets_panel, column=5)
+    row_presets_panel += 1
+    tk.Label(presets_panel, text="d").grid(row=row_presets_panel, column=4, pady=2)
+    d_from_origin_parabola_textbox = tk.Entry(presets_panel, width=5)
+    d_from_origin_parabola_textbox.grid(row=row_presets_panel, column=5)
+    row_presets_panel += 1
+    tk.Label(presets_panel, text="w").grid(row=row_presets_panel, column=4, pady=2)
+    width_parabola_textbox = tk.Entry(presets_panel, width=5)
+    width_parabola_textbox.grid(row=row_presets_panel, column=5)
+
     # Saving options
     row+=1
     ttk.Separator(control_panel_utilities, orient=HORIZONTAL).grid(row=row, column=0, ipadx=150, pady=10, columnspan=3)
@@ -629,6 +662,19 @@ def initialize_control_panel():
     row += 1
     save_title_textbox = tk.Entry(control_panel_utilities, width=20)
     save_title_textbox.grid(row=row, column=0, columnspan=3)
+    row += 1
+
+    # Loading options
+    ttk.Separator(control_panel_utilities, orient=HORIZONTAL).grid(row=row, column=0, ipadx=150, pady=10, columnspan=3)
+    row += 1
+    tk.Label(control_panel_utilities, text="Loading options").grid(row=row, column=0, sticky="nsew", columnspan=3)
+    row += 1
+
+    load_textbox = tk.Text(control_panel_utilities, width=40, height=10)
+    load_textbox.grid(row=row, column=0, columnspan=3)
+    row += 1
+    load_button = tk.Button(control_panel_utilities, text="Load", command=controller.load)
+    load_button.grid(row=row, column=0, columnspan=3)
     row += 1
 
     # Bind textbox actions

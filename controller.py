@@ -15,6 +15,7 @@ import math
 import random
 from tkinter import NSEW
 import os.path
+import json
 
 import view
 import maths
@@ -29,6 +30,7 @@ coordinates = maths.coordinates
 in_range = -1
 selected_scatterer = -1
 
+asymptotic_bool = 0
 scattering_amp_bool = 0
 hide_scatterer_bool = 0
 
@@ -493,6 +495,12 @@ def step_scale():
     refresh_scale()
 
 
+def asymptotic_value():
+    global asymptotic_bool
+    asymptotic_bool = not asymptotic_bool
+    view.theta_plot.update_plot()
+
+
 def change_scattering_amp_visu():
     global scattering_amp_bool
     a = maths.a
@@ -631,6 +639,30 @@ def lattice_2d():
     view.resonances_plot.update_plot()
 
 
+def parabola():
+    N = int(view.n_parabola_textbox.get())
+    angle = float(view.angle_parabola_textbox.get())
+    d = float(view.d_from_origin_parabola_textbox.get())
+    w = float(view.width_parabola_textbox.get())
+    maths.N += N
+    maths.a = np.zeros(maths.N, dtype=complex)
+    y = np.linspace(-w, w, N)
+    list = []
+    for i, yi in enumerate(y):
+        xi = yi ** 2 / (4 * d) - d
+        list.append([xi, yi])
+    for i in range(N):
+        xi = list[i][0]*np.cos(angle) - list[i][1]*np.sin(angle)
+        yi = list[i][0]*np.sin(angle) + list[i][1]*np.cos(angle)
+        maths.coordinates.append([xi, yi])
+        circle = patches.Circle((xi, yi), radius=0.1, color='black')
+        view.xy_plot.scatterer_list.append(circle)
+        view.xy_plot.ax.add_patch(circle)
+    view.xy_plot.update_plot(-1, 0)
+    view.theta_plot.update_plot()
+    view.resonances_plot.update_plot()
+
+
 def save():
     save_name = "saves/" + view.save_title_textbox.get()
     if not (os.path.exists(save_name)):
@@ -667,12 +699,12 @@ def save():
         f.write("==XY PLOT DATA== [ format : x/y/psi(x, y) ]\n")
         for i in range(len(view.xy_plot.x_mesh)):
             for j in range(len(view.xy_plot.y_mesh[0])):
-                f.write("xy_dat : " + str("{:.2e}".format(view.xy_plot.psi_comp[i, j])) + "\n")
+                f.write("xy_dat : " + str("{:.2e}".format(view.xy_plot.psi_abs[i, j])) + "\n")
         f.write("\n")
 
         f.write("==THETA PLOT DATA== [ format : theta/psi(R, theta ]\n")
         for i in range(len(view.theta_plot.theta_contour)):
-            f.write("theta_dat : " + str("{:.2e}".format(view.theta_plot.psi_comp[i])) + "\n")
+            f.write("theta_dat : " + str("{:.2e}".format(view.theta_plot.to_plot[i])) + "\n")
         f.write("\n")
 
         f.write("==DET(M) PLOT DATA== [ format : im(k)/det(M(k)) ]\n")
@@ -682,3 +714,44 @@ def save():
         f.close()
     else:
         print("Error : File name already exists !")
+
+
+def load():
+    remove_all()
+    new_str = view.load_textbox.get("1.0", "end-1c")
+    list = new_str.split("\n")
+    new_k = float(list[0])
+    new_coord = []
+    for i in range(len(list)-1):
+        if list[i+1] != "":
+            new_coord.append(list[i+1].split(", "))
+            new_coord[i] = [float(elem) for elem in new_coord[i]]
+            print()
+
+    # update k
+    if new_k != 0:
+        new_lambda = 2*math.pi/new_k
+        maths.k = new_k
+        update_textbox(view.k_textbox, new_k)
+        update_textbox(view.lambda_textbox, round(new_lambda, 7))
+        view.lambda_value.set(new_lambda)
+
+    # update scatterers
+    for elem in new_coord:
+        maths.N += 1
+        maths.a = np.zeros(maths.N, dtype=complex)
+
+        # Add the coordinates to maths.coordinates
+        xi = elem[0]
+        yi = elem[1]
+        maths.coordinates.append([xi, yi])
+
+        # Add the circle to the ax of xy_plot
+        circle = patches.Circle((xi, yi), radius=0.1, color='black')
+        view.xy_plot.scatterer_list.append(circle)
+        view.xy_plot.ax.add_patch(circle)
+        view.xy_plot.update_plot(-1, 0)
+        view.theta_plot.update_plot()
+        view.resonances_plot.update_plot()
+
+    print("Loaded !")

@@ -16,7 +16,7 @@ def G(k, r): #Green function
     """
     This function return the value of the Green function G(k, r).
     """
-    return -1/(2*math.pi) * (-1j*k / (2*math.pi*r))**(1/2) * scipy.special.kv(1/2, -1j*k*r)
+    return (-1)/(4*np.pi)*np.exp(1j*k*r)/r
 
 
 def I(k, r):
@@ -35,9 +35,9 @@ def invF(k, alpha):
     This function return the value of the F used in the Foldy-Lax formalism
     """
     # Max
-    # res = 1/I(k, 0)
+    res = 1/I(k, 0)
     # Hard-sphere
-    res = -I(k, 0) * G(k, alpha) / I(k, alpha)
+    # res = -I(k, 0) * G(k, alpha) / I(k, alpha)
     return res
 
 
@@ -63,11 +63,6 @@ def compute_a(k, alpha):
     return invM.dot(vecPhi)
 
 
-def naive_sampling(theta_res, phi_res):
-    theta = np.linspace(-np.pi / 2, np.pi / 2, theta_res)
-    phi = np.linspace(-np.pi, np.pi, phi_res)
-    return theta, phi
-
 def directionnal_statistics(theta, phi, res):
     # RAPPEL : res[theta, phi]
     d_theta = theta[1] - theta[0]
@@ -85,15 +80,15 @@ def directionnal_statistics(theta, phi, res):
     theta_mean = np.arcsin(rho_z / np.sqrt(rho_x**2 + rho_y**2 + rho_z**2))
     phi_mean = np.arctan2(rho_y, rho_x)
 
-    print("theta_mean = " + str(theta_mean))
-    print("phi_mean = " + str(phi_mean))
+    # print("theta_mean = " + str(theta_mean))
+    # print("phi_mean = " + str(phi_mean))
     return theta_mean, phi_mean, mean_res_length
 
 
 
 ## ATOMS POSITION ##
-N = 10
-k = 1
+N = 1
+k = 0.01
 alpha = 1
 radiusBall = 5
 coordinates = []
@@ -102,15 +97,7 @@ for i in range(N):
     yi = random.random() * 2 * radiusBall - radiusBall
     zi = random.random() * 2 * radiusBall - radiusBall
     coordinates.append([xi, yi, zi])
-# coordinates.append([60, 60, 0])
-# coordinates.append([60, -60, 0])
-# coordinates.append([60, 0, 60])
 a = compute_a(k, alpha)
-print(coordinates)
-print(k)
-print(alpha)
-
-
 
 ## SAMPLING ##
 # ATTENTION : comme theta va de -pi à pi, il n'est pas défini comme en coordonnées sphériques usuelles,
@@ -118,43 +105,55 @@ print(alpha)
 RAD = 180/np.pi
 r = 10000
 
-theta = np.linspace(-np.pi / 2, np.pi / 2, 500)
-phi = np.linspace(-np.pi, np.pi, 500)
+theta_res = 499
+phi_res = 499
+theta = np.linspace(-np.pi / 2, np.pi / 2, theta_res)
+phi = np.linspace(-np.pi, np.pi, phi_res)
 phi_mesh,theta_mesh = np.meshgrid(phi, theta)
+
+d_theta = theta[1] - theta[0]
+d_phi = phi[1] - phi[0]
 
 x_contour = r * np.cos(theta_mesh) * np.cos(phi_mesh)
 y_contour = r * np.cos(theta_mesh) * np.sin(phi_mesh)
 z_contour = r * np.sin(theta_mesh)
-res = incident_wave(x_contour, y_contour, z_contour, k)
+psi = incident_wave(x_contour, y_contour, z_contour, k)
 for i in range(N):
     dx = x_contour - coordinates[i][0]
     dy = y_contour - coordinates[i][1]
     dz = z_contour - coordinates[i][2]
-    res += a[i] * G(k, np.sqrt(dx*dx + dy*dy + dz*dz))
-res -= incident_wave(x_contour, y_contour, z_contour, k)
-res /= np.exp(1j*k*r)/r
-res = np.abs(res)**2
+    psi += a[i] * G(k, np.sqrt(dx*dx + dy*dy + dz*dz))
+f = (psi - incident_wave(x_contour, y_contour, z_contour, k)) / G(k, r)
+f_abs = np.abs(f)**2
+psi_abs = np.abs(psi)**2
 
+# # Onde sphérique (théorème optique)
+dI = f_abs + 2*np.real(f)
 
-# # Illustration des bizarreries de la moyenne sphérique
-# res = 0
-# width = 20
-# t0 = 30*math.pi/180
-# p0 = 3*30*math.pi/180
-# res += np.exp(-(width * (theta_mesh-t0))**2/2) * np.exp(-(width * (phi_mesh-p0))**2/2)
-# t0 = 30*math.pi/180
-# p0 = -3*30*math.pi/180
-# res += np.exp(-(width * (theta_mesh-t0))**2/2) * np.exp(-(width * (phi_mesh-p0))**2/2)
+A = k/(4*np.pi) / ( k/(4*np.pi) + k/(4*np.pi)**2 * sum(sum(dI * d_phi * d_theta * np.cos(theta_mesh))) )
 
+psi_abs *= A
+dI = A + A*dI - 1
+
+to_plot = dI # k/(4*np.pi)**2 * (dI - 1)
+
+print( sum(sum(dI * d_phi * d_theta * np.cos(theta_mesh))) )
+
+# Onde plane (théorème optique)
+# I_s = k*sum(sum(f_abs / (4*np.pi)**2 * d_phi * d_theta * np.cos(theta_mesh)))
+# I_itf = np.imag(f[int(theta_res/2)][int(phi_res/2)])
+# test = I_s + I_itf
+# print("  ", I_s, "\n+ ", I_itf)
+# print("= ", test)
 
 
 ## MOLLWEIDE 2d PLOT ##
 fig = plt.figure()
 ax = fig.add_subplot(1,2,2)
 m = Basemap(projection='moll',lon_0=0,resolution='c') #projection='moll',lon_0=0,resolution='c'
-min = (res.min()>10**(-10)) * (res.min()-10**(-10))
-max = res.max()+res.max()/100
-cont = m.contourf(phi_mesh * RAD, theta_mesh * RAD, res, np.arange(min, max, (max - min) / 200), cmap=plt.cm.jet, latlon=True)
+min = to_plot.min()
+max = to_plot.max() + to_plot.max()/1000
+cont = m.contourf(phi_mesh * RAD, theta_mesh * RAD, to_plot, np.arange(min, max, (max - min) / 200), cmap=plt.cm.jet, latlon=True)
 cbar = m.colorbar(cont)
 parallels = np.arange(-90.,90.,30.)
 m.drawparallels(parallels,labels=[False,False,False,False])
@@ -164,7 +163,7 @@ m.drawmeridians(meridians,labels=[False,False,False,False])
 
 # DIRECTIONAL STATISTICS
 # theta_mean, phi_mean = mean(theta, phi, res)
-theta_mean2, phi_mean2, mean_res_length = directionnal_statistics(theta, phi, res)
+theta_mean2, phi_mean2, mean_res_length = directionnal_statistics(theta, phi, to_plot)
 m.scatter(phi_mean2 * RAD, theta_mean2 * RAD, marker='o', color='w', latlon=True, s=50)
 print("mean_res_length = " + str(mean_res_length))
 

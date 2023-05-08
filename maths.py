@@ -34,6 +34,7 @@ alpha = 1
 
 # vector a #
 a = np.zeros(N, dtype=complex)              # vector a from equation (3)
+A = 0
 
 
 # Functions --------------------------------------------------------------
@@ -55,18 +56,19 @@ def phi_pl(x, k):
     return np.exp(1j*k*x)
 
 
+def incident_wave(x, y, k):
+    if view.wave_type.get():
+        res = phi_sph(x,y,k)
+    else:
+        res = phi_pl(x, k)
+    return res
+
+
 def G(k, r): #Green function
     """
     This function return the value of the Green function G(k, r).
     """
     return -1/(2*math.pi) * scipy.special.kv(0, -1j*k*r)
-
-
-def SurfaceUnitSphere(d):
-    """
-    This function return the value of the surface of a unitary sphere in d dimensions
-    """
-    return
 
 
 def I(k, r):
@@ -102,37 +104,12 @@ def initialize_scatterers():
         yi = random.random() * 2*y_max - y_max
         coordinates[i] = [xi, yi]
 
-
-def minimize_stddev():
-    theta_contour = np.linspace(0, 2 * math.pi, 1000)
-    x_contour = view.rc_value.get() * np.cos(theta_contour)
-    y_contour = view.rc_value.get() * np.sin(theta_contour)
-    x_grid, y_grid = np.linspace(-5, 5, 20), np.linspace(-5, 5, 20)
-    min_stddev = None
-    min_x, min_y = None, None
-    for iy in range(len(y_grid)):
-        for ix in range(len(x_grid)):
-            x, y = x_grid[ix], y_grid[iy]
-            if not(x == 0 and y == 0):
-                coordinates[0] = [x, y]
-                compute_a()
-                psi = phi_sph(x_contour, y_contour, k)
-                for i in range(N):
-                    dx = x_contour - coordinates[i][0]
-                    dy = y_contour - coordinates[i][1]
-                    psi += a[i] * G(k, np.sqrt(dx * dx + dy * dy))
-                psi /= phi_sph(x_contour, y_contour, k)
-                psi = (np.abs(psi)) ** 2
-                psi /= sum(psi)
-                mean = sum(theta_contour * psi)
-                stddev = np.sqrt(sum((theta_contour - mean) ** 2 * psi))
-                print("(",  round(x, 2), ", ",   round(y, 2), ")  :  ", round(stddev, 4))
-                if min_stddev is None or stddev < min_stddev:
-                    min_stddev = stddev
-                    min_x, min_y = x, y
-    print("solution : ", min_x, min_y, "  :  ", min_stddev)
-
-
+    # lim = 4
+    # c = 1
+    # y = np.linspace(-lim, lim, N)
+    # for i, yi in enumerate(y):
+    #     xi = yi**2 / (4*c) - c
+    #     coordinates[i] = [xi, yi]
 
 
 def compute_a():
@@ -141,23 +118,57 @@ def compute_a():
     coefficients a[i] seen at equation (1). To do so, it uses the system
     of equations (3).
     """
-    global a
-    M = np.zeros((N, N), dtype=complex)  # Matrix M(k) from equation (3)
-    vecPhi = np.zeros(N, dtype=complex)  # vector phi from equation (3)
+    if N != 0:
+        x, y = np.array(coordinates)[:,0], np.array(coordinates)[:,1]
+        dx = x[:, None] - x
+        dy = y[:, None] - y
+        r = np.sqrt(dx ** 2 + dy ** 2) + np.identity(N)
+        M = invF(k, alpha) * np.identity(N, dtype=complex) - G(k, r) * (1-np.identity(N, dtype=complex))
+        vecPhi = incident_wave(x, y, k)
+        res = np.linalg.solve(M, vecPhi)
+    else:
+        res = []
+    return res
+
+
+def compute_A():
+    theta_res = 1000
+    theta_contour = np.linspace(0, 2*np.pi, theta_res)
+    r_contour = np.array([np.cos(theta_contour), np.sin(theta_contour)]).transpose()
+    coord = np.array(coordinates).reshape((N, 2))
+    s = np.dot(np.exp(-1j * k * np.dot(r_contour, coord.T)), np.array(a).reshape((N, 1)))
+    integrand = np.abs(s)**2 + 2*np.real(s)
+    A = 2*np.pi / (2*np.pi + sum(integrand * 2*np.pi/theta_res))
+    return A
+
+
+def compute_current_diff(theta_res):
+    theta_contour = np.linspace(0, 2 * np.pi, theta_res)
+    r_contour = np.array([np.cos(theta_contour), np.sin(theta_contour)]).transpose()
+    coord = np.array(coordinates).reshape((N, 2))
+    s = np.dot(np.exp(-1j * k * np.dot(r_contour, coord.T)), a.reshape((N, 1)))
+    integrand = np.abs(s) ** 2 + 2 * np.real(s)
+    current_diff = A + A * integrand - 1
+    return np.array(current_diff).reshape(theta_res)
+
+
+def compute_cross_section(theta_res):
+    theta_contour = np.linspace(0, 2 * np.pi, theta_res)
+    r_contour = np.array([np.cos(theta_contour), np.sin(theta_contour)]).transpose()
+    coord = np.array(coordinates).reshape((N, 2))
+    s = np.dot(np.exp(-1j * k * np.dot(r_contour, coord.T)), a.reshape((N, 1)))
+    return np.array(1/k * np.abs(s)**2).reshape(theta_res)
+
+
+
+def compute_psi(x_contour, y_contour, a, A):
+    psi = incident_wave(x_contour, y_contour, k)
     for i in range(N):
-        if view.wave_type.get():
-            vecPhi[i] = phi_sph(coordinates[i][0], coordinates[i][1], k)
-        else:
-            vecPhi[i] = phi_pl(coordinates[i][0], k)
-        for j in range(N):
-            if i != j:
-                dx = coordinates[i][0] - coordinates[j][0]
-                dy = coordinates[i][1] - coordinates[j][1]
-                M[i, j] = -G(k, np.sqrt(dx**2 + dy**2))
-            else:
-                M[i, i] = invF(k, alpha)
-    invM = np.linalg.inv(M)
-    a = invM.dot(vecPhi)
+        dx = x_contour - coordinates[i][0]
+        dy = y_contour - coordinates[i][1]
+        r = np.sqrt(dx**2 + dy**2)
+        psi += a[i] * G(k, r)
+    return psi
 
 
 def det_m(re_k, im_k):
