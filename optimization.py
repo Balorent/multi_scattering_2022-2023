@@ -167,8 +167,8 @@ def opti_geometric(x, plot_bool):
         return ang_std_dev
 
 
-for N in [5, 6]:
-    for count in [21, 22]:
+for N in [5]:
+    for count in [55]:
         theta_res = 1000
         r = 1000
         theta_contour = np.linspace(0, 2*np.pi, theta_res)
@@ -203,25 +203,30 @@ for N in [5, 6]:
         save_name = "opti/opti_positive_k_varies/N_" + str(N) + "/save_" + str(count)
         if not (os.path.exists(save_name)):
             f = open(save_name, "w")
-            f.write("N : " + str(N) + "\n")
-            f.write("std_dev : " + str(std_dev) + "\n")
-            f.write("k : " + str(k_opti) + "\n")
-            f.write("Positions of the atoms : " + str(coord_opti) + "\n")
-            f.write("==THETA PLOT DATA==\n")
-            for count in range(len(plot_save)):
-                f.write("theta_dat : " + str("{:.5e}".format(plot_save[count])) + "\n")
-            f.close()
         else:
             print("Error : File name already exists !")
             f = open("opti/opti_positive_k_varies/N_" + str(N) + "/temp_" + str(count), "w")
-            f.write("N : " + str(N) + "\n")
-            f.write("std_dev : " + str(std_dev) + "\n")
-            f.write("k : " + str(k_opti) + "\n")
-            f.write("Positions of the atoms : " + str(coord_opti) + "\n")
-            f.write("==THETA PLOT DATA==\n")
-            for count in range(len(plot_save)):
-                f.write("theta_dat : " + str("{:.5e}".format(plot_save[count])) + "\n")
-            f.close()
+
+        f.write("N : " + str(N) + "\n")
+        f.write("std_dev : " + str(std_dev) + "\n\n")
+        f.write("\n")
+
+        f.write("initial situation : " + "\n")
+        f.write(str(x[-1]) + "\n")
+        for i in range(N):
+            f.write(str(x[2 * i]) + ", " + str(x[2 * i + 1]) + "\n")
+        f.write("\n")
+
+        f.write("optimized situation : " + "\n")
+        f.write(str(k_opti) + "\n")
+        for i in range(N):
+            f.write(str(coord_opti[2 * i]) + ", " + str(coord_opti[2 * i + 1]) + "\n")
+        f.write("\n")
+
+        f.write("==THETA PLOT DATA==\n")
+        for count in range(len(plot_save)):
+            f.write("theta_dat : " + str("{:.5e}".format(plot_save[count])) + "\n")
+        f.close()
 
         # plt.plot(np.linspace(0, 2 * np.pi, theta_res), plot_save)
         # section = np.linspace(0, 2 * np.pi, theta_res)
