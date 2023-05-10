@@ -640,17 +640,43 @@ def lattice_2d():
 
 
 def parabola():
+    # set up the parameters
     N = int(view.n_parabola_textbox.get())
     angle = float(view.angle_parabola_textbox.get())
     d = float(view.d_from_origin_parabola_textbox.get())
-    w = float(view.width_parabola_textbox.get())
+    step = float(view.step_parabola_textbox.get())
     maths.N += N
     maths.a = np.zeros(maths.N, dtype=complex)
-    y = np.linspace(-w, w, N)
+
+    # fill the y-axis
+    y = np.zeros((N))
+    ind = int((N - 1) / 2)
+    if N%2 != 0:
+        y_0 = 0
+        y[ind] = y_0
+        ind_center_right = ind
+        ind_center_left = ind
+    else:
+        y_0 = step/2
+        y[ind] = -y_0
+        y[ind+1] = y_0
+        ind_center_left = ind
+        ind_center_right = ind+1
+
+    for i in range(int((N-1)/2)):
+        roots = np.roots([1, 0, 16*d**2 - 2*y_0**2, -32*d**2 * y_0, 16*d**2 * y_0**2 + y_0**4 - 16*d**2 * step**2])
+        y_1 = np.max(roots)
+        y[ind_center_right+i+1] = y_1
+        y[ind_center_left - i - 1] = -y_1
+        y_0 = y_1
+
+    # fill the x-axis
     list = []
     for i, yi in enumerate(y):
         xi = yi ** 2 / (4 * d) - d
         list.append([xi, yi])
+
+    # tilt the parabola + plot it
     for i in range(N):
         xi = list[i][0]*np.cos(angle) - list[i][1]*np.sin(angle)
         yi = list[i][0]*np.sin(angle) + list[i][1]*np.cos(angle)
@@ -661,6 +687,7 @@ def parabola():
     view.xy_plot.update_plot(-1, 0)
     view.theta_plot.update_plot()
     view.resonances_plot.update_plot()
+
 
 
 def save():

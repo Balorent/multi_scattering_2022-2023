@@ -134,7 +134,7 @@ class PlotXY:
         elif view_type.get() == 1:
             self.psi_abs = np.angle(self.psi)
         # else:
-            # self.psi_abs /= (self.dx * self.dy * sum(sum(np.abs(self.psi)**2)))  # Normalization such that the integral(|psi|²) = 1
+        #     self.psi_abs /= (self.dx * self.dy * sum(sum(np.abs(self.psi)**2)))  # Normalization such that the integral(|psi|²) = 1
 
         if not math.isnan(np.abs(self.psi_abs[0][0])):
             if not update_res_bound and view_type.get() != 2:
@@ -157,11 +157,11 @@ class PlotXY:
 
             elif view_type.get() == 1:
                 self.pcm = self.ax.imshow(self.psi_abs, norm=colors.Normalize(vmin=-math.pi, vmax=math.pi),
-                                          cmap='twilight',
+                                          cmap='hsv',
                                           origin="lower",
                                           extent=[self.x_min, self.x_max, self.y_min, self.y_max])
             elif view_type.get() == 2:
-                self.pcm = self.ax.imshow(complexTools.domaincol_c(self.psi_abs, 0.9),
+                self.pcm = self.ax.imshow(complexTools.domaincol_c(self.psi, 0.9),
                                           origin="lower",
                                           extent=[self.x_min, self.x_max, self.y_min, self.y_max])
             view.plot_canvas_XY.restore_region(self.background)

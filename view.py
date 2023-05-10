@@ -153,7 +153,7 @@ parabola_button = None
 n_parabola_textbox = None
 angle_parabola_textbox = None
 d_from_origin_parabola_textbox = None
-width_parabola_textbox = None
+step_parabola_textbox = None
 angle_2d_textbox = None
 save_button = None
 save_title_textbox = None
@@ -244,7 +244,7 @@ def initialize_control_panel():
         y0_1d_textbox, r0_1d_textbox, theta0_1d_textbox, angle_1d_textbox, lattice_2d_button, nx_2d_textbox, \
         ny_2d_textbox, dx_2d_textbox, dy_2d_textbox, x0_2d_textbox, y0_2d_textbox, angle_2d_textbox, parabola_button, \
         save_button, n_parabola_textbox, angle_parabola_textbox, d_from_origin_parabola_textbox, \
-        width_parabola_textbox, xy_plot, theta_plot, resonances_plot, save_title_textbox, load_button, load_textbox
+        step_parabola_textbox, xy_plot, theta_plot, resonances_plot, save_title_textbox, load_button, load_textbox
 
     control_panel.grid(row=0, column=2, rowspan=4, columnspan=2, sticky=tk.NSEW)
     control_canvas = tk.Canvas(control_panel, width=375, height=1000)
@@ -646,9 +646,9 @@ def initialize_control_panel():
     d_from_origin_parabola_textbox = tk.Entry(presets_panel, width=5)
     d_from_origin_parabola_textbox.grid(row=row_presets_panel, column=5)
     row_presets_panel += 1
-    tk.Label(presets_panel, text="w").grid(row=row_presets_panel, column=4, pady=2)
-    width_parabola_textbox = tk.Entry(presets_panel, width=5)
-    width_parabola_textbox.grid(row=row_presets_panel, column=5)
+    tk.Label(presets_panel, text="step").grid(row=row_presets_panel, column=4, pady=2)
+    step_parabola_textbox = tk.Entry(presets_panel, width=5)
+    step_parabola_textbox.grid(row=row_presets_panel, column=5)
 
     # Saving options
     row+=1
