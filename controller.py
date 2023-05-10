@@ -726,7 +726,6 @@ def load():
         if list[i+1] != "":
             new_coord.append(list[i+1].split(", "))
             new_coord[i] = [float(elem) for elem in new_coord[i]]
-            print()
 
     # update k
     if new_k != 0:

@@ -128,7 +128,7 @@ def compute_a():
         res = np.linalg.solve(M, vecPhi)
     else:
         res = []
-    return res
+    return np.array(res)
 
 
 def compute_A():

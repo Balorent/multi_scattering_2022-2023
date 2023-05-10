@@ -185,52 +185,56 @@ for N in [5]:
         bounds_sup = [5 for i in range(2*N)]
         bounds_sup = np.append(bounds_sup, 10)
         bounds = Bounds(bounds_inf, bounds_sup)
-        minim = minimize(opti_geometric, x, args=(False), method='trust-constr', bounds=bounds)
-        k_opti = minim.x[-1]
-        coord_opti = minim.x[:-1]
 
-        print("min = ", minim.x)
-        print("LOAD :")
-        print(k_opti)
+        std_dev = opti_geometric(np.array([0.71642481, 0.42740968, - 0.06418167, 0.55912946, 0.42460192, - 0.09620751,
+                                           1.09773044, 0.43397197, 0.21956515, - 0.04520707, 1]), True)
 
-        for n in range(N):
-            print(minim.x[2*n], ", ", minim.x[2*n+1], sep='')
-
-        print("\n\n\n")
-
-        std_dev = opti_geometric(minim.x, True)
-
-        save_name = "opti/opti_positive_k_varies/N_" + str(N) + "/save_" + str(count)
-        if not (os.path.exists(save_name)):
-            f = open(save_name, "w")
-        else:
-            print("Error : File name already exists !")
-            f = open("opti/opti_positive_k_varies/N_" + str(N) + "/temp_" + str(count), "w")
-
-        f.write("N : " + str(N) + "\n")
-        f.write("std_dev : " + str(std_dev) + "\n\n")
-        f.write("\n")
-
-        f.write("initial situation : " + "\n")
-        f.write(str(x[-1]) + "\n")
-        for i in range(N):
-            f.write(str(x[2 * i]) + ", " + str(x[2 * i + 1]) + "\n")
-        f.write("\n")
-
-        f.write("optimized situation : " + "\n")
-        f.write(str(k_opti) + "\n")
-        for i in range(N):
-            f.write(str(coord_opti[2 * i]) + ", " + str(coord_opti[2 * i + 1]) + "\n")
-        f.write("\n")
-
-        f.write("==THETA PLOT DATA==\n")
-        for count in range(len(plot_save)):
-            f.write("theta_dat : " + str("{:.5e}".format(plot_save[count])) + "\n")
-        f.close()
-
-        # plt.plot(np.linspace(0, 2 * np.pi, theta_res), plot_save)
-        # section = np.linspace(0, 2 * np.pi, theta_res)
-        # plt.fill_between(section, plot_save, alpha=.5)
-        # plt.xlim(0, 2 * np.pi)
-        # plt.ylim(min(plot_save) + min(plot_save) / 10, max(plot_save) + max(plot_save) / 10)
-        # plt.show()
+        # minim = minimize(opti_geometric, x, args=(False), method='trust-constr', bounds=bounds)
+        # k_opti = minim.x[-1]
+        # coord_opti = minim.x[:-1]
+        #
+        # print("min = ", minim.x)
+        # print("LOAD :")
+        # print(k_opti)
+        #
+        # for n in range(N):
+        #     print(minim.x[2*n], ", ", minim.x[2*n+1], sep='')
+        #
+        # print("\n\n\n")
+        #
+        # std_dev = opti_geometric(minim.x, True)
+        #
+        # save_name = "opti/opti_positive_k_varies/N_" + str(N) + "/save_" + str(count)
+        # if not (os.path.exists(save_name)):
+        #     f = open(save_name, "w")
+        # else:
+        #     print("Error : File name already exists !")
+        #     f = open("opti/opti_positive_k_varies/N_" + str(N) + "/temp_" + str(count), "w")
+        #
+        # f.write("N : " + str(N) + "\n")
+        # f.write("std_dev : " + str(std_dev) + "\n\n")
+        # f.write("\n")
+        #
+        # f.write("initial situation : " + "\n")
+        # f.write(str(x[-1]) + "\n")
+        # for i in range(N):
+        #     f.write(str(x[2 * i]) + ", " + str(x[2 * i + 1]) + "\n")
+        # f.write("\n")
+        #
+        # f.write("optimized situation : " + "\n")
+        # f.write(str(k_opti) + "\n")
+        # for i in range(N):
+        #     f.write(str(coord_opti[2 * i]) + ", " + str(coord_opti[2 * i + 1]) + "\n")
+        # f.write("\n")
+        #
+        # f.write("==THETA PLOT DATA==\n")
+        # for count in range(len(plot_save)):
+        #     f.write("theta_dat : " + str("{:.5e}".format(plot_save[count])) + "\n")
+        # f.close()
+        #
+        plt.plot(np.linspace(0, 2 * np.pi, theta_res), plot_save)
+        section = np.linspace(0, 2 * np.pi, theta_res)
+        plt.fill_between(section, plot_save, alpha=.5)
+        plt.xlim(0, 2 * np.pi)
+        plt.ylim(min(plot_save) + min(plot_save) / 10, max(plot_save) + max(plot_save) / 10)
+        plt.show()
