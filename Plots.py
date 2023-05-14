@@ -45,8 +45,8 @@ class PlotXY:
         self.ax.set(adjustable='box', aspect='equal')
         self.ax.set_xlim(x_min, x_max)
         self.ax.set_ylim(y_min, y_max)
-        self.ax.set_xlabel('x [nm]')
-        self.ax.set_ylabel('y [nm]')
+        self.ax.set_xlabel('x [d]')
+        self.ax.set_ylabel('y [d]')
         view.plot_canvas_XY.draw()
         self.psi = np.zeros((x_res, y_res), dtype=complex)
         self.psi_abs = np.zeros((x_res, y_res))
@@ -132,7 +132,7 @@ class PlotXY:
         if view_type.get() == 0:
             self.psi_abs = (np.abs(self.psi)) ** 2
         elif view_type.get() == 1:
-            self.psi_abs = np.angle(self.psi)
+            self.psi_abs = np.angle(self.psi) + 2*np.pi*(np.angle(self.psi) < 0)
         # else:
         #     self.psi_abs /= (self.dx * self.dy * sum(sum(np.abs(self.psi)**2)))  # Normalization such that the integral(|psi|²) = 1
 
@@ -156,7 +156,7 @@ class PlotXY:
                                                           ncolors=256))
 
             elif view_type.get() == 1:
-                self.pcm = self.ax.imshow(self.psi_abs, norm=colors.Normalize(vmin=-math.pi, vmax=math.pi),
+                self.pcm = self.ax.imshow(self.psi_abs, norm=colors.Normalize(vmin=0, vmax=2*math.pi),
                                           cmap='hsv',
                                           origin="lower",
                                           extent=[self.x_min, self.x_max, self.y_min, self.y_max])
@@ -290,7 +290,7 @@ class PlotTheta:
         self.ax.set_xlim(theta_min, theta_max)
         self.ax.set_ylim(0, 2)
         self.ax.set_xlabel('\u03B8 [rad]')
-        self.ax.set_ylabel('$\\frac{d\u03C3}{d\u03B8}$')
+        self.ax.set_ylabel('$\\frac{d\u03C3}{d\u03B8}$ or $\u0394 \\, J$')
         view.plot_canvas_theta.draw()
         self.background = view.plot_canvas_theta.copy_from_bbox(self.ax.bbox)
         self.line = None

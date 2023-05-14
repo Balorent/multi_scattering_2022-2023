@@ -176,16 +176,12 @@ def det_m(re_k, im_k):
     This function computes the determinant of the matrix M
     for a certain k in the complex plane
     """
-    M2 = np.zeros((N, N), dtype=complex)
-    for i in range(N):
-        for j in range(N):
-            if i != j:
-                dx = coordinates[i][0] - coordinates[j][0]
-                dy = coordinates[i][1] - coordinates[j][1]
-                M2[i, j] = -G(re_k + 1j*im_k, np.sqrt(dx**2 + dy**2))
-            else:
-                M2[i, i] = invF(k, alpha)
-    return np.linalg.det(M2)
+    x, y = np.array(coordinates)[:,0], np.array(coordinates)[:,1]
+    dx = x[:, None] - x
+    dy = y[:, None] - y
+    r = np.sqrt(dx ** 2 + dy ** 2) + np.identity(N)
+    M = invF(re_k + 1j*im_k, alpha) * np.identity(N, dtype=complex) - G(re_k + 1j*im_k, r) * (1-np.identity(N, dtype=complex))
+    return np.linalg.det(M)
 
 
 def directional_stat(theta, res):
